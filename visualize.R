@@ -1,257 +1,266 @@
+library(igraph)
+library(readr)
+library(ggplot2)
+library(ggraph)
 
-
-
-# /**
-#   * Map the labels of the will-be merged matrix to the indices of it.
-# *
-#   * @param alignment The alignment between G and H.
-# * @param g_labels The labels of G.
-# * @param h_labels The labels of H.
-# * @param gamma Gamma.
-# *
-#   * @return The labels of the merged matrix.
-# *
-#   * @throws
-# */
-merge_labels <- function(alignment, g_labels, h_labels, gamma) {
-  merged_labels <- vector(mode = "character", length = 0)
-  aligned <- FALSE
-  #For each gi in G, label index i in merged with gi, or gi + hj if gi is aligned with hj
-  
-  for (i in seq_along(alignment)) {
-    aligned <- FALSE
-    for (j in seq_along(alignment[[1]])) {
-      if (alignment[i][j] > 0 && alignment[i][j] >= gamma) {
-        merged_labels <- c(merged_labels, paste0(g_labels[i], h_labels[j]))
-        aligned <- TRUE
-        break
-      }
-    }
-    if (!aligned) {
-      merged_labels <- c(merged_labels, g_labels[i])
-    }
+generate_network_plot <- function(
+    g_path,
+    h_path,
+    a_path) {
+  # Function to read adjacency matrix from CSV file
+  read_adjacency_matrix <- function(file_path) {
+    adjacency_matrix <- read.csv(file_path, header = TRUE, row.names = 1)
+    adjacency_matrix <- as.matrix(adjacency_matrix)
+    # print(adjacency_matrix) # DEBUG
+    # print(rownames(adjacency_matrix)) # DEBUG
+    # print(colnames(adjacency_matrix)) # DEBUG
+    return(adjacency_matrix)
   }
-  #For each hj in H that isn't aligned with gi, label the next index with hj
-  
-  for (j in seq_along(alignment[[1]])) {
-    aligned <- FALSE
-    for (i in seq_along(alignment)) {
-      if (alignment[i][j] > 0 && alignment[i][j] >= gamma) {
-        aligned <- TRUE
-        break
-      }
-    }
-    if (!aligned) {
-      merged_labels <- c(merged_labels, h_labels[j])
-    }
-  }
-  
-  return(merged_labels)
+
+  # Read the adjacency matrices for G, H, and the alignment A
+  g_matrix <- read_adjacency_matrix(g_path)
+  h_matrix <- read_adjacency_matrix(h_path)
+  # a_matrix <- read_adjacency_matrix(a_path)
+
+  # Create the graph for G
+  g_graph <- graph_from_adjacency_matrix(
+    g_matrix,
+    mode = "undirected"
+  )
+  V(g_graph)$color <- "blue"
+  E(g_graph)$color <- "blue"
+
+  # Create the graph for H
+  h_graph <- graph_from_adjacency_matrix(
+    h_matrix,
+    mode = "undirected"
+  )
+  V(h_graph)$color <- "red"
+  E(h_graph)$color <- "red"
+
+  # # Create the graph for the alignment A
+  # a_graph <- graph_from_adjacency_matrix(
+  #   a_matrix,
+  #   mode = "undirected"
+  # )
+  # E(a_graph)$color <- "purple"
+
+  # # Create a new graph and add the vertices and edges
+  # # from each of the three graphs
+  # combined_graph <- graph(NULL)
+  # combined_graph <- add_vertices(
+  #   combined_graph, vcount(g_graph) + vcount(h_graph),
+  #   attr = list(name = c(
+  #     V(g_graph)$name,
+  #     V(h_graph)$name
+  #   ))
+  # )
+  # combined_graph <- add_edges(
+  #   combined_graph, get.edgelist(g_graph)
+  # )
+  # combined_graph <- add_edges(
+  #   combined_graph, get.edgelist(h_graph)
+  # )
+  # combined_graph <- add_edges(
+  #   combined_graph, get.edgelist(a_graph)
+  # )
+
+  # Begin plotting
+  # Extract node and edge data from the graph
+  node_data <- data.frame(
+    name = c(
+      V(g_graph)$name,
+      V(h_graph)$name
+    ),
+    color = c(
+      rep("blue", vcount(g_graph)),
+      rep("red", vcount(h_graph))
+    )
+  )
+  edge_data <- data.frame(
+    from = c(
+      get.edgelist(g_graph)[, 1],
+      get.edgelist(h_graph)[, 1]
+      # get.edgelist(a_graph)[, 1]
+    ),
+    to = c(
+      get.edgelist(g_graph)[, 2],
+      get.edgelist(h_graph)[, 2]
+      # get.edgelist(a_graph)[, 2]
+    ),
+    color = c(
+      rep("blue", ecount(g_graph)),
+      rep("red", ecount(h_graph))
+      # rep("purple", ecount(a_graph))
+    )
+  )
+
+  # print(get.edgelist(a_graph)[, 1])
+  # print(get.edgelist(a_graph)[, 2])
+
+  # Draw the combined network using ggplot and ggraph
+  combined_network <- graph_from_data_frame(
+    edge_data,
+    directed = FALSE,
+    vertices = node_data
+  )
+  combined_network_plot <- ggraph(combined_network, layout = "kk") +
+    geom_edge_link(
+      aes(
+        edge_alpha = 0.5,
+        edge_width = 0.5,
+        color = color
+      )
+    ) +
+    geom_node_point(
+      aes(
+        color = color
+      ),
+      size = 2
+    ) +
+    theme_void() +
+    theme(
+      legend.position = "none"
+    )
+
+  # Save the plot to a file
+  ggsave("./alignments/G-10-0.1-1-G-10-0.1-2/alignment.png")
 }
 
-# /**
-#   * Assigns the entry at index (label1, label2) the merged matrix the given value.
-# *
-#   * @param merged The merged matrix.
-# * @param merged_labels The labels of the merged matrix.
-# * @param label1 The first label.
-# * @param label2 The second label.
-# * @param value The value to assign.
-# *
-#   * @return The merged matrix with the new value.
-# *
-#   * @throws
-# */
-# Note that in R, the index of a matrix or a two-dimensional array starts
-# from 1, not 0 as in C++. Also, instead of using a vector of vectors to
-# represent a matrix, R uses a two-dimensional array or a matrix. The "match"
-# function in R is used to find the index of an element in a vector. Finally,
-# instead of throwing an exception as in C++, we use the "stop" function in R
-# to terminate the function and throw an error message.
-assign <- function(merged,
-                   merged_labels,
-                   label1,
-                   label2,
-                   value) {
-  i <- match(label1, merged_labels)
-  j <- match(label2, merged_labels)
-  if (is.na(i) || is.na(j)) {
-    stop("One or both of the labels not found in merged_labels")
-  }
-  merged[i, j] <- value
-  merged[j, i] <- value
-  return(merged)
-}
+generate_network_plot(
+  "./alignments/G-10-0.1-1-G-10-0.1-2/G-10-0.1-1.csv",
+  "./alignments/G-10-0.1-1-G-10-0.1-2/G-10-0.1-2.csv",
+  "./alignments/G-10-0.1-1-G-10-0.1-2/alignment_matrix.csv"
+)
 
 
 
-# Define function 'merge' in R
-merge <-
-  function(g_graph,
-           h_graph,
-           alignment,
-           g_labels,
-           h_labels,
-           merged_labels,
-           gamma) {
-    # merged_i,j = 0 if there is no edge between nodes i and j
-    # merged_i,j = 1 if only G draws an edge between nodes i and j
-    # merged_i,j = 2 if only H draws an edge between nodes i and j
-    # merged_i,j = 3 if both G and H draw an edge between nodes i and j
-    
-    # Initialize merged with 0s
-    merged <-
-      matrix(0,
-             nrow = length(merged_labels),
-             ncol = length(merged_labels))
-    
-    # Iterate through all nodes gi in G, aligned and unaligned
-    for (gi in seq_len(nrow(g_graph))) {
-      hj <- 1
-      while (hj <= ncol(alignment)) {
-        if (alignment[gi, hj] > 0 &&
-            alignment[gi, hj] >= gamma) {
-          # gi and hj are aligned
-          # Iterate through all nodes gk adjacent to gi
-          for (gk in seq_len(ncol(g_graph))) {
-            if (g_graph[gi, gk] > 0 &&
-                gi != gk) {
-              # gi and gk are adjacent, ignoring self-loops
-              hl <- 1
-              while (hl <= ncol(alignment)) {
-                if (alignment[gk, hl] > 0 && alignment[gk, hl] >= gamma) {
-                  break # this gk is aligned with only this hl
-                }
-                hl <- hl + 1
-              }
-              if (hl <= ncol(alignment)) {
-                # gk and hl are aligned
-                label1 <- paste0(g_labels[gi], h_labels[hj])
-                label2 <- paste0(g_labels[gk], h_labels[hl])
-                if (h_graph[hj, hl] > 0) {
-                  # hj is adjacent to hl
-                  merged <-
-                    assign(merged, merged_labels, label1, label2, 3)
-                } else {
-                  # hj is not adjacent to hl
-                  merged <-
-                    assign(merged, merged_labels, label1, label2, 1)
-                }
-              } else {
-                # gk is unaligned
-                label1 <- paste0(g_labels[gi], h_labels[hj])
-                label2 <- g_labels[gk]
-                merged <-
-                  assign(merged, merged_labels, label1, label2, 1)
-              }
-            }
-          }
-          # Iterate through all nodes hk adjacent to hj
-          for (hk in seq_len(ncol(h_graph))) {
-            # for (hk in seq_along(h_graph[[1]])) {
-            if (h_graph[hj, hk] > 0 &&
-                hj != hk) {
-              # hj and hk are adjacent, ignoring self-loops
-              gl <- 1
-              while (gl <= nrow(alignment)) {
-                if (alignment[gl, hk] > 0 && alignment[gl, hk] >= gamma) {
-                  break # this gl is aligned with only this hk
-                }
-                gl <- gl + 1
-              }
-              if (gl <= nrow(alignment)) {
-                # hk and gl are aligned
-                label1 <- g_labels[gi] + h_labels[hj]
-                label2 <- g_labels[gl] + h_labels[hk]
-                if (g_graph[gi, gl] > 0) {
-                  # gi is adjacent to gl
-                  # merged = assign(merged, merged_labels, label1, label2, 3)
-                  next # we already recorded this merge
-                } else {
-                  # gi is not adjacent to gl
-                  merged <-
-                    assign(merged, merged_labels, label1, label2, 2)
-                }
-              } else {
-                # hk is unaligned
-                label1 <- g_labels[gi] + h_labels[hj]
-                label2 <- h_labels[hk]
-                merged <-
-                  assign(merged, merged_labels, label1, label2, 2)
-              }
-            }
-            break # this gi is aligned with only this hj
-          }
-          
-          if (hj == ncol(alignment)) {
-            # gi was aligned to no hj
-            # Iterate through all nodes gj adjacent to gi
-            
-            for (gj in seq_along(g_graph[1,])) {
-              if (g_graph[gi, gj] > 0 &&
-                  gi != gj) {
-                # gi and gj are adjacent, ignoring self-loops
-                hk <- 1
-                while (hk <= ncol(alignment)) {
-                  if (alignment[gj, hk] > 0 && alignment[gj, hk] >= gamma) {
-                    break # this gj is aligned with only this hk
-                  }
-                  hk <- hk + 1
-                }
-                if (hk <= ncol(alignment)) {
-                  # gj and hk are aligned
-                  label1 <- g_labels[gi]
-                  label2 <- g_labels[gj] + h_labels[hk]
-                  merged <-
-                    assign(merged, merged_labels, label1, label2, 1)
-                } else {
-                  # gj is unaligned
-                  label1 <- g_labels[gi]
-                  label2 <- g_labels[gj]
-                  merged <-
-                    assign(merged, merged_labels, label1, label2, 1)
-                }
-              }
-            }
-          }
-          # Iterate through the nodes hi in H that are not aligned to any node in G
-          
-          for (hi in 1:length(h_graph)) {
-            gj <- 1
-            while (gj <= nrow(alignment)) {
-              if (alignment[gj, hi] > 0 && alignment[gj, hi] >= gamma) {
-                break # skip any aligned hi
-              }
-              gj <- gj + 1
-            }
-            if (gj > nrow(alignment)) {
-              # Iterate through all nodes hk adjacent to hi
-              for (hk in 1:ncol(h_graph)) {
-                if (h_graph[hi, hk] > 0 && hi != hk) {
-                  gl <- 1
-                  while (gl <= nrow(alignment)) {
-                    if (alignment[gl, hk] > 0 && alignment[gl, hk] >= gamma) {
-                      break # this hk is aligned with only this gl
-                    }
-                    gl <- gl + 1
-                  }
-                  if (gl <= nrow(alignment)) {
-                    label1 <- h_labels[hi]
-                    label2 <- g_labels[gl] + h_labels[hk]
-                    merged <-
-                      assign(merged, merged_labels, label1, label2, 2)
-                  } else {
-                    label1 <- h_labels[hi]
-                    label2 <- h_labels[hk]
-                    merged <-
-                      assign(merged, merged_labels, label1, label2, 2)
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-      return(merged)
-    }
-  }
+
+
+
+
+
+# library(igraph)
+# library(readr)
+# library(ggplot2)
+
+# generate_network_plot <- function(adjacency_matrix_G_path, adjacency_matrix_H_path, alignment_matrix_path) {
+#   # Function to read adjacency matrix from CSV file
+#   # read_adjacency_matrix <- function(file_path) {
+#   #   adjacency_matrix <- read.csv(file_path, header = FALSE)
+#   #   adjacency_matrix <- as.matrix(adjacency_matrix)
+#   #   rownames(adjacency_matrix) <- 1:nrow(adjacency_matrix)
+#   #   colnames(adjacency_matrix) <- 1:ncol(adjacency_matrix)
+#   #   print(adjacency_matrix)
+#   #   print(rownames(adjacency_matrix))
+#   #   print(colnames(adjacency_matrix))
+#   #   return(adjacency_matrix)
+#   # }
+
+#   read_adjacency_matrix <- function(file_path) {
+#     adjacency_matrix <- read.csv(file_path, header = TRUE, row.names = 1)
+#     adjacency_matrix <- as.matrix(adjacency_matrix)
+#       print(adjacency_matrix)
+#       print(rownames(adjacency_matrix))
+#       print(colnames(adjacency_matrix))
+#     return(adjacency_matrix)
+#   }
+
+#   # Read the adjacency matrices for G, H, and the alignment A
+#   adjacency_matrix_G <- read_adjacency_matrix(adjacency_matrix_G_path)
+#   adjacency_matrix_H <- read_adjacency_matrix(adjacency_matrix_H_path)
+#   alignment_matrix <- read_adjacency_matrix(alignment_matrix_path)
+
+#   # Create the graph for G
+#   graph_G <- graph_from_adjacency_matrix(adjacency_matrix_G, mode = "undirected")
+#   V(graph_G)$color <- "blue"
+
+#   # Create the graph for H
+#   graph_H <- graph_from_adjacency_matrix(adjacency_matrix_H, mode = "undirected")
+#   V(graph_H)$color <- "red"
+
+#   # Create the graph for the alignment A
+#   graph_A <- graph_from_adjacency_matrix(alignment_matrix, mode = "directed")
+#   E(graph_A)$color <- "purple"
+
+#   # Create a new graph and add the vertices and edges from each of the three graphs
+#   graph_combined <- graph()
+#   graph_combined <- add_vertices(graph_combined, vcount(graph_G) + vcount(graph_H) + vcount(graph_A))
+#   graph_combined <- add_edges(graph_combined, get.edgelist(graph_G))
+#   graph_combined <- add_edges(graph_combined, get.edgelist(graph_H) + vcount(graph_G))
+#   graph_combined <- add_edges(graph_combined, get.edgelist(graph_A) + c(vcount(graph_G), vcount(graph_G) + vcount(graph_H)))
+
+#   # Plot the combined graph
+#   plot(graph_combined, vertex.label = NA, vertex.size = 10, edge.arrow.size = 0.5,
+#        vertex.color = c(rep("blue", vcount(graph_G)), rep("red", vcount(graph_H))),
+#        edge.color = c(rep("blue", ecount(graph_G)), rep("red", ecount(graph_H)), rep("purple", ecount(graph_A))))
+# }
+
+# generate_network_plot(
+#   "./alignments/G-10-0.1-1-G-10-0.1-2/G-10-0.1-1.csv",
+#   "./alignments/G-10-0.1-1-G-10-0.1-2/G-10-0.1-2.csv",
+#   "./alignments/G-10-0.1-1-G-10-0.1-2/alignment_matrix.csv")
+
+# library(igraph)
+# library(readr)
+# library(ggplot2)
+#
+# generate_network_plot <- function(adjacency_matrix_G_path, adjacency_matrix_H_path, alignment_matrix_path) {
+#
+#   print("1") # DEBUG
+#
+#   # Function to read adjacency matrix from CSV file
+#   read_adjacency_matrix <- function(file_path) {
+#     adjacency_matrix <- read_csv(file_path)
+#     print(adjacency_matrix)
+#     adjacency_matrix <- as.matrix(adjacency_matrix)
+#     rownames(adjacency_matrix) <- 1:nrow(adjacency_matrix)
+#     colnames(adjacency_matrix) <- 1:ncol(adjacency_matrix)
+#     return(adjacency_matrix)
+#   }
+#
+#
+#   # Read the adjacency matrices for G, H, and the alignment A
+#   adjacency_matrix_G <- read_adjacency_matrix(adjacency_matrix_G_path)
+#   print("2") # DEBUG
+#   adjacency_matrix_H <- read_adjacency_matrix(adjacency_matrix_H_path)
+#   print("3") # DEBUG
+#   alignment_matrix <- read_adjacency_matrix(alignment_matrix_path)
+#   print("4") # DEBUG
+#
+#   # Create an empty graph
+#   graph <- graph()
+#
+#   # Add nodes from G (blue)
+#   V(graph)$color <- ifelse(V(graph) %in% V(graph, name = rownames(adjacency_matrix_G)), "blue", V(graph)$color)
+#   print("5") # DEBUG
+#   # Add nodes from H (red)
+#   V(graph)$color <- ifelse(V(graph) %in% V(graph, name = colnames(adjacency_matrix_H)), "red", V(graph)$color)
+#   print("6") # DEBUG
+#   # Add edges from G (blue)
+#   graph <- add_edges(graph, as.matrix(adjacency_matrix_G))
+#   print("7") # DEBUG
+#   E(graph)$color <- ifelse(E(graph) %in% get.edgelist(graph, names = FALSE, edges = E(graph)), "blue", E(graph)$color)
+#   print("8") # DEBUG
+#   # Add edges from G to H (purple) based on alignment matrix
+#   for (i in 1:nrow(alignment_matrix)) {
+#     for (j in 1:ncol(alignment_matrix)) {
+#       if (!is.na(alignment_matrix[i, j])) {
+#         graph <- add_edges(graph, c(i, j + nrow(adjacency_matrix_G)))
+#         E(graph)$color <- ifelse(E(graph) %in% get.edgelist(graph, names = FALSE, edges = E(graph)), "purple", E(graph)$color)
+#       }
+#     }
+#   }
+#
+#   # Plot the graph
+#   plot(graph, vertex.color = V(graph)$color, edge.color = E(graph)$color,
+#        vertex.size = 20, edge.arrow.size = 0.5, layout = layout_with_fr)
+#
+#   # Save the plot as an image file
+#   ggsave("network_plot.png")
+# }
+#
+# generate_network_plot(
+#   "./alignments/G-10-0.1-1-G-10-0.1-2/G-10-0.1-1.csv",
+#   "./alignments/G-10-0.1-1-G-10-0.1-2/G-10-0.1-2.csv",
+#   "./alignments/G-10-0.1-1-G-10-0.1-2/alignment_matrix.csv")

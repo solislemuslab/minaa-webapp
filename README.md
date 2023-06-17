@@ -1,11 +1,18 @@
 # MiNAA Web App
 
+<img src="www/logo.png" style="width:40%;" align=right>
+
+[![GitHub Releases](https://img.shields.io/github/v/release/solislemuslab/minaa-webapp?display_name=tag)](https://github.com/solislemuslab/minaa-webapp/releases) [![GitHub license](https://img.shields.io/github/license/solislemuslab/minaa-webapp)](https://github.com/solislemuslab/minaa-webapp/blob/main/LICENCE) [![GitHub Issues](https://img.shields.io/github/issues/solislemuslab/minaa-webapp)](https://github.com/solislemuslab/minaa-webapp/issues) ![ ](https://img.shields.io/github/languages/code-size/solislemuslab/minaa-webapp)
+
 ## Description
 
-**MiNAA** aligns two networks based their topologies and biologies.
+The **MiNAA Web App** is a wrapper around [MiNAA](https://github.com/solislemuslab/minaa) built with R Shiny for the purpose of simplifying and enhancing user interaction with it. When complete, this app will be live at [https://minaa.wid.wisc.edu](/).
 
-## Usage
+**MiNAA** is a standalone program which aligns a pair of given networks on the basis of their topological and biological data. Follow the instructions in [MiNAA's Repository](https://github.com/solislemuslab/minaa) to run MiNAA locally in the terminal.
 
+## Contributions, Questions, Issues, and Feedback
+
+Users interested in expanding functionalities in the MiNAA Web App are welcome to do so. Issues reports are encouraged through Github's [issue tracker](https://github.com/solislemuslab/minaa-webapp/issues). See details on how to contribute and report issues in [CONTRIBUTING.md](https://github.com/solislemuslab/minaa-webapp/blob/master/CONTRIBUTING.md).
 
 ## License
 
