@@ -4,11 +4,7 @@ ResultsTab <- tabPanel(
     sidebarPanel(
       uiOutput("select.folder"),
       uiOutput("select.file"),
-      downloadButton("download.folder", "Download Dataset"),
-      hr(),
-      # Upload zip files
-      fileInput("zipfile", "Upload Zipped Dataset", accept = ".zip"),
-      actionButton("unzip", "Unzip")
+      downloadButton("download.folder", "Download Dataset")
     ),
     mainPanel(
       verbatimTextOutput("file.content")
