@@ -83,7 +83,7 @@ AlignTab <- tabPanel(
         # Submit Button
         column(
           4,
-          actionButton("submitInputs", label = "Run", width = "84px")
+          actionButton("executeAlign", label = "Run", width = "84px")
         )
       )
     ),
@@ -92,17 +92,17 @@ AlignTab <- tabPanel(
       tags$head(
         tags$style(
           HTML("
-                      .my-verbatim {
-                        max-height: 200px;
-                        overflow-y: auto;
-                      }
-                    ")
+                  .my-verbatim {
+                    max-height: 200px;
+                    overflow-y: auto;
+                  }
+                ")
         )
       ),
       # tableOutput('contents1')
-      verbatimTextOutput("contents1"),
-      verbatimTextOutput("contents2"),
-      verbatimTextOutput("contents3")
+      verbatimTextOutput("align_contentsG"),
+      verbatimTextOutput("align_contentsH"),
+      verbatimTextOutput("align_contentsB"),
       #   fluidRow(
       #     column(width=12,
       #            fluidRow(style = "max-height:100px; margin:10px",

@@ -1,13 +1,13 @@
+# RESOURCES
+# https://wi-fast-stats.wid.wisc.edu/
+# https://github.com/crsl4/fast-stats/tree/master/shiny-app/webinar-aug20
+# https://wi-fast-stats.wid.wisc.edu/cotyledon/
+
 # h1(span("MiNAA", style = "font-weight: 300"),
 #    style = "font-family: 'Source Sans Pro';
 #       color: #000000; text-align: center;
 #       padding: 20px"),
 # br(),
-
-# RESOURCES
-# https://wi-fast-stats.wid.wisc.edu/
-# https://github.com/crsl4/fast-stats/tree/master/shiny-app/webinar-aug20
-# https://wi-fast-stats.wid.wisc.edu/cotyledon/
 
 source("alignTab.R")
 source("resultsTab.R")

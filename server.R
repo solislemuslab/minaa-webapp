@@ -4,36 +4,36 @@ function(input, output) {
   ######## ALIGN TAB ########
 
   # Display the selected file
-  output$contents1 <- renderText({
-    inFile1 <- input$align_GFile # RENAME VARS
+  output$align_contentsG <- renderText({
+    inFile <- input$align_GFile
 
-    if (is.null(inFile1)) {
+    if (is.null(inFile)) {
       return(NULL)
     }
 
-    file_content <- readLines(inFile1$datapath)
+    file_content <- readLines(inFile$datapath)
     paste(file_content, collapse = "\n")
   })
 
-  output$contents2 <- renderText({
-    inFile2 <- input$align_HFile
+  output$align_contentsH <- renderText({
+    inFile <- input$align_HFile
 
-    if (is.null(inFile2)) {
+    if (is.null(inFile)) {
       return(NULL)
     }
 
-    file_content <- readLines(inFile2$datapath)
+    file_content <- readLines(inFile$datapath)
     paste(file_content, collapse = "\n")
   })
 
-  output$contents3 <- renderText({
-    inFile3 <- input$align_BFile
+  output$align_contentsB <- renderText({
+    inFile <- input$align_BFile
 
-    if (is.null(inFile3)) {
+    if (is.null(inFile)) {
       return(NULL)
     }
 
-    file_content <- readLines(inFile3$datapath)
+    file_content <- readLines(inFile$datapath)
     paste(file_content, collapse = "\n")
   })
 
@@ -45,8 +45,8 @@ function(input, output) {
   })
 
   # Handle minaa.exe execution
-  observeEvent(input$submitInputs, {
-    # TEST
+  observeEvent(input$executeAlign, {
+    # # TESTING
     # source("visualize.R")
     # generate_network_plot(
     #   "./alignments/G-10-0.1-1-G-10-0.1-2/G-10-0.1-1.csv",
@@ -106,21 +106,37 @@ function(input, output) {
     } else {
       arg_Halias <- paste0(" -Halias=", Halias)
     }
-    # process p
+    # include passthrough option
     arg_p <- " -p"
-    # process g
+    # include greekstamp option
     arg_g <- " -g"
 
     args <- paste0("./minaa.exe", arg_G, arg_H, arg_B, arg_a, arg_b, arg_Galias, arg_Halias, arg_p, arg_g)
-    system(args)
+    # system(args)
 
-    # # Run Visualization // NEED TO UPDATE FOR GREEKSTAMPING
+    # # Run Visualization
     # if (input$do_vis) {
     #   source("visualize.R")
-    #   result_folder <- paste0("./alignments/", Galias, "-", Halias, "/")
-    #   G_filepath <- paste0(result_folder, Galias, ".csv")
-    #   H_filepath <- paste0(result_folder, Halias, ".csv")
-    #   A_filepath <- paste0(result_folder, "alignment_matrix.csv")
+    #   # Reverse engineer the folder name
+    #   result_folder <- paste0("./alignments/", Galias, "-", Halias)
+    #   # Append alpha
+    #   if (is.null(a) || is.na(a)) {
+    #     result_folder <- paste0(result_folder, "-a1")
+    #   } else {
+    #     result_folder <- paste0(result_folder, "-a", a)
+    #   }
+    #   # Append beta if appropriate
+    #   if (!is.null(B)) {
+    #     if (is.null(b) || is.na(b)) {
+    #       result_folder <- paste0(result_folder, "-b1")
+    #     } else {
+    #       result_folder <- paste0(result_folder, "-b", b)
+    #     }
+    #   }
+    #
+    #   G_filepath <- paste0(result_folder, "/", Galias, ".csv")
+    #   H_filepath <- paste0(result_folder, "/", Halias, ".csv")
+    #   A_filepath <- paste0(result_folder, "/", "alignment_matrix.csv")
     #   generate_network_plot(G_filepath, H_filepath, A_filepath)
     # }
   })
@@ -170,25 +186,65 @@ function(input, output) {
   ######## VISUALIZE TAB ########
   visualizeDirectory <- "./alignments"
 
-  # Handle result selection
-  # output$select.visfolder <-
-  #   renderUI(expr = selectInput(inputId = 'visfolder.name',
-  #                               label = 'Dataset',
-  #                               choices = list.dirs(path = visualizeDirectory,
-  #                                                   full.names = FALSE,
-  #                                                   recursive = FALSE)))
-  # # output$select.file <-
-  #   renderUI(expr = selectInput(inputId = 'file.name',
-  #                               label = 'File',
-  #                               choices = list.files(path = file.path(visualizeDirectory,
-  #                                                                     input$folder.name))))
-
   # Display the selected file
-  # output$file.content <- renderText({
-  #   file_path <- file.path(visualizeDirectory, input$folder.name, input$file.name)
-  #   file_content <- readLines(file_path)
-  #   paste(file_content, collapse = '\n')
-  # })
+  output$vis_contentsG <- renderText({
+    inFile <- input$vis_GFile # RENAME VARS
+
+    if (is.null(inFile)) {
+      return(NULL)
+    }
+
+    file_content <- readLines(inFile$datapath)
+    paste(file_content, collapse = "\n")
+  })
+
+  output$vis_contentsH <- renderText({
+    inFile <- input$vis_HFile
+
+    if (is.null(inFile)) {
+      return(NULL)
+    }
+
+    file_content <- readLines(inFile$datapath)
+    paste(file_content, collapse = "\n")
+  })
+
+  output$vis_contentsA <- renderText({
+    inFile <- input$vis_AFile
+
+    if (is.null(inFile)) {
+      return(NULL)
+    }
+
+    file_content <- readLines(inFile$datapath)
+    paste(file_content, collapse = "\n")
+  })
+
+  # Handle execution
+  observeEvent(input$executeVisualize, {
+    G <- input$vis_GFile$datapath
+    H <- input$vis_HFile$datapath
+    A <- input$vis_AFile$datapath
+
+    # Process G
+    if (is.null(G)) {
+      print("Error: A value for G must be provided.")
+      break # PROBLEM: THIS RESULTS IN CRASH
+    }
+    # Process H
+    if (is.null(H)) {
+      print("Error: A value for H must be provided.")
+      break
+    }
+    # Process A
+    if (is.null(A)) {
+      print("Error: A value for A must be provided.")
+      break
+    }
+    # Run Visualization
+    source("visualize.R")
+    generate_network_plot(G, H, A)
+  })
 
   # # Download the selected folder
   # output$download.folder <- downloadHandler(
@@ -199,26 +255,4 @@ function(input, output) {
   #     zip::zipr(zipfile = file, files = file.path(resultDirectory, input$folder.name), recurse = TRUE)
   #   }
   # )
-  #
-  # # Upload Dataset
-  # observeEvent(input$unzip, {
-  #
-  #   if (is.null(input$zipfile)) {
-  #     return()
-  #   }
-  #
-  #   unzip_dir <- "alignments"
-  #   file_name <- tools::file_path_sans_ext(basename(input$zipfile$name))
-  #   unzip_dir <- file.path(unzip_dir, file_name)
-  #   unzip(input$zipfile$datapath, exdir = unzip_dir, junkpaths = TRUE)
-  #
-  #   # Refresh dataset dropdown
-  #   resultDirectory <- './alignments'
-  #   output$select.folder <-
-  #     renderUI(expr = selectInput(inputId = 'folder.name',
-  #                                 label = 'Dataset',
-  #                                 choices = list.dirs(path = resultDirectory,
-  #                                                     full.names = FALSE,
-  #                                                     recursive = FALSE)))
-  # })
 }

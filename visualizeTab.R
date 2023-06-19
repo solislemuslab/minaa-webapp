@@ -41,16 +41,16 @@ VisualizeTab <- tabPanel(
       tags$head(
         tags$style(
           HTML("
-                              .my-verbatim {
-                                max-height: 200px;
-                                overflow-y: auto;
-                              }
-                            ")
+                  .my-verbatim {
+                    max-height: 200px;
+                    overflow-y: auto;
+                  }
+                ")
         )
       ),
-      verbatimTextOutput("vis_GTable"),
-      verbatimTextOutput("vis_HTable"),
-      verbatimTextOutput("vis_ATable")
+      verbatimTextOutput("vis_contentsG"),
+      verbatimTextOutput("vis_contentsH"),
+      verbatimTextOutput("vis_contentsA")
     )
   )
 )

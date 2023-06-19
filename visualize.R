@@ -11,9 +11,6 @@ generate_network_plot <- function(
   read_adjacency_matrix <- function(file_path) {
     adjacency_matrix <- read.csv(file_path, header = TRUE, row.names = 1)
     adjacency_matrix <- as.matrix(adjacency_matrix)
-    # print(adjacency_matrix) # DEBUG
-    # print(rownames(adjacency_matrix)) # DEBUG
-    # print(colnames(adjacency_matrix)) # DEBUG
     return(adjacency_matrix)
   }
 
@@ -132,10 +129,6 @@ generate_network_plot(
   "./alignments/G-10-0.1-1-G-10-0.1-2/G-10-0.1-2.csv",
   "./alignments/G-10-0.1-1-G-10-0.1-2/alignment_matrix.csv"
 )
-
-
-
-
 
 
 
