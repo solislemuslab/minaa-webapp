@@ -1,129 +1,272 @@
 options(shiny.maxRequestSize = 10*2^20) # raise limit from 5MB default to 10MB
+library(igraph)
 
-function(input, output) {
-  ######## ALIGN TAB ########
+# Define the plot_aligned_networks function outside the server function
+plot_aligned_networks <- function(adj_G, adj_A, alignment_GA, th_align, zero_degree, vertex_label_value, size_aligned,
+                                  node_G_color, node_H_color, edge_G_color, edge_H_color, line_GH_color, aligned_G_color, aligned_H_color) {
   
-  # Display the selected file
+  # Create graph objects from adjacency matrices for G and A
+  graph_G <- graph_from_adjacency_matrix(adj_G, mode="undirected")
+  V(graph_G)$name <- rownames(adj_G)
+  
+  graph_A <- graph_from_adjacency_matrix(adj_A, mode="undirected")
+  V(graph_A)$name <- rownames(adj_A)
+  
+  # Identify aligned nodes based on alignment threshold
+  alignment_indices <- which(alignment_GA >= th_align, arr.ind=TRUE)
+  aligned_nodes_G <- V(graph_G)$name[alignment_indices[, 1]]
+  aligned_nodes_A <- V(graph_A)$name[alignment_indices[, 2]]
+  
+  # Optionally remove nodes with degree 0, except aligned nodes
+  zero_deg_nodes_G <- V(graph_G)[degree(graph_G) < zero_degree & !(V(graph_G)$name %in% aligned_nodes_G)]
+  zero_deg_nodes_A <- V(graph_A)[degree(graph_A) < zero_degree & !(V(graph_A)$name %in% aligned_nodes_A)]
+  graph_G <- delete.vertices(graph_G, zero_deg_nodes_G)
+  graph_A <- delete.vertices(graph_A, zero_deg_nodes_A)
+  
+  # Re-calculate aligned nodes after node removal
+  aligned_indices_G <- match(aligned_nodes_G, V(graph_G)$name)
+  aligned_indices_A <- match(aligned_nodes_A, V(graph_A)$name)
+  
+  # Filter out NA values from aligned indices
+  valid_indices <- which(!is.na(aligned_indices_G) & !is.na(aligned_indices_A))
+  aligned_indices_G <- aligned_indices_G[valid_indices]
+  aligned_indices_A <- aligned_indices_A[valid_indices]
+  
+  # Create a combined graph for visualization (disjoint union of G and A)
+  combined_graph <- graph.disjoint.union(graph_G, graph_A)
+  
+  # Define circular layout for G and A separately
+  layout_G <- layout_in_circle(graph_G)
+  layout_A <- layout_in_circle(graph_A)
+  
+  # Adjust the layout so that aligned nodes are directly opposite each other
+  adjust_opposite_positions <- function(layout_G, layout_A, indices_G, indices_A) {
+    num_nodes <- length(indices_G)
+    angle_step <- pi / (num_nodes + 1)
+    start_angle <- pi / 2
+    
+    for (i in seq_along(indices_G)) {
+      angle <- start_angle - (i * angle_step)
+      layout_G[indices_G[i], ] <- c(cos(angle), sin(angle))
+      layout_A[indices_A[i], ] <- c(-cos(angle), sin(angle))
+    }
+    return(list(layout_G, layout_A))
+  }
+  
+  # Adjust positions for aligned nodes
+  layouts <- adjust_opposite_positions(layout_G, layout_A, aligned_indices_G, aligned_indices_A)
+  layout_G <- layouts[[1]]
+  layout_A <- layouts[[2]]
+  
+  # Reduce the separation distance between G and A networks
+  layout_G <- layout_G - cbind(rep(3, nrow(layout_G)), rep(0, nrow(layout_G)))  # Increase the gap between networks
+  layout_A <- layout_A + cbind(rep(3, nrow(layout_A)), rep(0, nrow(layout_A)))
+  
+  
+  # Combine the layouts of G and A into one layout
+  layout_combined <- rbind(layout_G, layout_A)
+  
+  # Add edges between aligned nodes from G to A in the combined graph
+  for (i in seq_along(aligned_indices_G)) {
+    combined_graph <- add_edges(combined_graph, c(aligned_indices_G[i], aligned_indices_A[i] + vcount(graph_G)))
+  }
+  
+  # Define colors for vertices and edges based on user inputs
+  vertex_colors <- c(rep(node_G_color, vcount(graph_G)), rep(node_H_color, vcount(graph_A)))
+  vertex_colors[aligned_indices_G] <- aligned_G_color  # Use the user-defined color for aligned nodes in G
+  vertex_colors[aligned_indices_A + vcount(graph_G)] <- aligned_H_color 
+      
+    edge_colors <- c(rep(edge_G_color, ecount(graph_G)), rep(edge_H_color, ecount(graph_A)), rep(line_GH_color, length(aligned_indices_G)))
+    
+    # Define sizes for vertices and labels based on user inputs
+    vertex_sizes <- rep(1, vcount(combined_graph))
+    vertex_sizes[c(aligned_indices_G, aligned_indices_A + vcount(graph_G))] <- size_aligned
+    
+    vertex_label_sizes <- rep(vertex_label_value, vcount(combined_graph))
+    vertex_label_sizes[c(aligned_indices_G, aligned_indices_A + vcount(graph_G))] <- vertex_label_value
+    
+    # Plot the combined graph with the specified layouts and colors
+    plot(combined_graph, layout=layout_combined,
+         vertex.label=V(combined_graph)$name,  # Add vertex labels
+         vertex.size=vertex_sizes,  # Adjust vertex size for better visualization
+         vertex.label.cex=vertex_label_sizes,  # Adjust label size for readability
+         vertex.color=vertex_colors,  # Set vertex colors
+         edge.color=edge_colors,  # Set edge colors
+         edge.width=c(rep(1, ecount(graph_G) + ecount(graph_A)), rep(2, length(aligned_indices_G))),
+         asp=0)  # Keep aspect ratio constant
+}
+
+function(input, output, session) {
+  ######## RUN TAB ########
+  plotGenerated <- reactiveVal(FALSE)  
+  output_dir <- "alignments/"
+  
+  # Reactive values to store matrices for use in both plot and download
+  reactiveData <- reactiveValues(
+    adj_G = NULL,
+    adj_A = NULL,
+    alignment_GA = NULL
+  )
+  
+  # Display the content of the selected file G
   output$contents1 <- renderText({
-    inFile1 <- input$align_GFile # RENAME VARS
+    inFile1 <- input$align_GFile
     
-    if (is.null(inFile1))
-      return(NULL)
-    
-    file_content <- readLines(inFile1$datapath)
-    paste(file_content, collapse = '\n')
+    if (is.null(inFile1)) {
+      return("No file for G selected")
+    }
   })
   
+  # Display the content of the selected file H
   output$contents2 <- renderText({
     inFile2 <- input$align_HFile
     
-    if (is.null(inFile2))
-      return(NULL)
-    
-    file_content <- readLines(inFile2$datapath)
-    paste(file_content, collapse = '\n')
+    if (is.null(inFile2)) {
+      return("No file for H selected")
+    }
   })
   
-  output$contents3 <- renderText({
-    inFile3 <- input$align_BFile
-    
-    if (is.null(inFile3))
-      return(NULL)
-    
-    file_content <- readLines(inFile3$datapath)
-    paste(file_content, collapse = '\n')
-  })
-  
-  output$alphaOut <- renderPrint({ input$alphaIn })
-  output$betaOut <- renderPrint({ input$betaIn })
-  
-  # Handle minaa.exe execution
+  # Handle the execution on clicking submit button
   observeEvent(input$submitInputs, {
     
-    # TEST
-    # source("visualize.R")
-    # generate_network_plot(
-    #   "./alignments/G-10-0.1-1-G-10-0.1-2/G-10-0.1-1.csv", 
-    #   "./alignments/G-10-0.1-1-G-10-0.1-2/G-10-0.1-2.csv",
-    #   "./alignments/G-10-0.1-1-G-10-0.1-2/alignment_matrix.csv")
-    # break
+    # Validation checks for file uploads
+    if (is.null(input$align_GFile)) {
+      showNotification("Error: Please upload a file for Network G.", type = "error", duration = 5)
+      return()  # Stop execution if validation fails
+    }
     
+    if (is.null(input$align_HFile)) {
+      showNotification("Error: Please upload a file for Network H.", type = "error", duration = 5)
+      return()  # Stop execution if validation fails
+    }
+    
+    # Get file paths and user inputs
     G <- input$align_GFile$datapath
     H <- input$align_HFile$datapath
-    B <- input$align_BFile$datapath
+    B <- input$align_BFile$datapath  # Optional
     a <- input$alphaIn
     b <- input$betaIn
-    Galias <- tools::file_path_sans_ext(input$align_GFile$name)
-    Halias <- tools::file_path_sans_ext(input$align_HFile$name)
     
-    # Process G
-    if (is.null(G)) {
-      print("Error: A value for G must be provided.")
-      break # PROBLEM: THIS RESULTS IN CRASH
-    }
-    else {
-      arg_G <- paste0(" ", G)
-    }
-    # Process H
-    if (is.null(H)) {
-      print("Error: A value for H must be provided.")
-      break
-    }
-    else {
-      arg_H <- paste0(" ", H)
-    }
-    # Process B
-    if (is.null(B)) {
-      arg_B <- ""
-    }
-    else {
-      arg_B <- paste0(" -B=", B)
-    }
-    # Process a
-    if (is.null(a) || is.na(a)) {
-      arg_a <- ""
-    }
-    else {
-      arg_a <- paste0(" -a=", a)
-    }
-    # Process b
-    if (is.null(b) || is.na(b)) {
-      arg_b <- ""
-    }
-    else {
-      arg_b <- paste0(" -b=", b)
-    }
-    # Process G Alias
-    if (is.null(Galias) || is.na(Galias)) {
-      arg_Galias <- ""
-    }
-    else {
-      arg_Galias <- paste0(" -Galias=", Galias)
-    }
-    # Process H Alias
-    if (is.null(Halias) || is.na(Halias)) {
-      arg_Halias <- ""
-    }
-    else {
-      arg_Halias <- paste0(" -Halias=", Halias)
-    }
-    # process p
-    arg_p <- " -p"
+    # Build the arguments for the system call
+    arg_G <- paste0(" ", G)
+    arg_H <- paste0(" ", H)
+    arg_B <- ifelse(is.null(B), "", paste0(" -B=", B))  # B is optional
+    arg_a <- ifelse(is.null(a) || is.na(a), "", paste0(" -a=", a))
+    arg_b <- ifelse(is.null(b) || is.na(b), "", paste0(" -b=", b))
+    arg_s <- ifelse(input$is_bio_matrix, " -s", "")  # Add '-s' flag if 'is_bio_matrix' is TRUE
+    arg_p <- " -p"  # Assuming -p is always required
     
-    args <- paste0("./minaa.exe", arg_G, arg_H, arg_B, arg_a, arg_b, arg_Galias, arg_Halias, arg_p)
-    system(args)
+    args <- paste0("./minaa.exe", arg_G, arg_H, arg_B, arg_a, arg_b, arg_s, arg_p)
+    result <- system(args, intern = TRUE)  # Capture output for debugging
     
-    # # Run Visualization
-    # if (input$do_vis) {
-    #   source("visualize.R")
-    #   result_folder <- paste0("./alignments/", Galias, "-", Halias, "/")
-    #   G_filepath <- paste0(result_folder, Galias, ".csv")
-    #   H_filepath <- paste0(result_folder, Halias, ".csv")
-    #   A_filepath <- paste0(result_folder, "alignment_matrix.csv")
-    #   generate_network_plot(G_filepath, H_filepath, A_filepath)
-    # }
+    # Check for failure by searching for specific success indicators in result
+    if (any(grepl("ALIGNMENT COMPLETED", result))) {
+      showNotification("minaa.exe has been executed successfully.", type = "message")
+    } else {
+      showNotification("Error running minaa.exe", type = "error")
+      return(NULL)
+    }
     
+    # Generate and render the aligned network plot
+    if (input$do_vis) {
+      
+      # Load the G and H adjacency matrices (assuming CSV format)
+      reactiveData$adj_G <- as.matrix(read.csv(G, row.names = 1))
+      reactiveData$adj_A <- as.matrix(read.csv(H, row.names = 1))
+      
+      alignment_dir <- sprintf("%s-%s", tools::file_path_sans_ext(basename(G)), tools::file_path_sans_ext(basename(H)))
+      alignment_matrix_filepath <- file.path(output_dir, alignment_dir, "alignment_matrix.csv")
+      
+      # Load the alignment matrix from the output file generated by minaa.exe
+      if (!file.exists(alignment_matrix_filepath)) {
+        showNotification("Error: alignment_matrix.csv not found.", type = "error")
+        return(NULL)
+      }
+      
+      reactiveData$alignment_GA <- as.matrix(read.csv(alignment_matrix_filepath, row.names = 1))
+      
+      # Get user-defined parameters for the plot
+      th_align <- input$th_align
+      zero_degree <- input$zero_degree
+      vertex_label_value <- input$vertex_label_value
+      size_aligned <- input$size_aligned
+      node_G_color <- input$node_G_color
+      node_H_color <- input$node_H_color
+      edge_G_color <- input$edge_G_color
+      edge_H_color <- input$edge_H_color
+      line_GH_color <- input$line_GH_color
+      aligned_G_color <- input$aligned_G_color  # Get color for aligned nodes in G
+      aligned_H_color <- input$aligned_H_color  # Get color for aligned nodes in H
+      
+      # Render the plot in a separate output area (networkPlot)
+      output$networkPlot <- renderPlot({
+        plot_aligned_networks(
+          adj_G = reactiveData$adj_G,
+          adj_A = reactiveData$adj_A,
+          alignment_GA = reactiveData$alignment_GA,
+          th_align = th_align,
+          zero_degree = zero_degree,
+          vertex_label_value = vertex_label_value,
+          size_aligned = size_aligned,
+          node_G_color = node_G_color,
+          node_H_color = node_H_color,
+          edge_G_color = edge_G_color,
+          edge_H_color = edge_H_color,
+          line_GH_color = line_GH_color,
+          aligned_G_color = aligned_G_color,  # Pass aligned G color
+          aligned_H_color = aligned_H_color   # Pass aligned H color
+        )
+        plotGenerated(TRUE)
+      }, height = 1000, width = 1000)
+      
+      output$plotGenerated <- reactive({
+        plotGenerated()
+      })
+      outputOptions(output, "plotGenerated", suspendWhenHidden = FALSE)  # Required for conditional rendering
+      
+      # Show notification when the plot is generated
+      showNotification("Plot generated successfully.", type = "message")
+    }
   })
+  
+  # Download plot as PNG or JPEG
+  output$downloadPlot <- downloadHandler(
+    filename = function() {
+      format <- input$downloadFormat
+      paste0("network_plot_", Sys.Date(), ".", tolower(format))
+    },
+    content = function(file) {
+      width <- 12  # Width in inches
+      height <- 12  # Height in inches
+      dpi <- 300  # Resolution in DPI
+      
+      # Use png() or jpeg() depending on selected format
+      if (input$downloadFormat == "PNG") {
+        png(file, width = width, height = height, units = "in", res = dpi)
+      } else {
+        jpeg(file, width = width, height = height, units = "in", res = dpi)
+      }
+      # Recreate the plot here
+      plot_aligned_networks(
+        adj_G = reactiveData$adj_G,
+        adj_A = reactiveData$adj_A,
+        alignment_GA = reactiveData$alignment_GA,
+        th_align = input$th_align,
+        zero_degree = input$zero_degree,
+        vertex_label_value = input$vertex_label_value,
+        size_aligned = input$size_aligned,
+        node_G_color = input$node_G_color,
+        node_H_color = input$node_H_color,
+        edge_G_color = input$edge_G_color,
+        edge_H_color = input$edge_H_color,
+        line_GH_color = input$line_GH_color,
+        aligned_G_color = input$aligned_G_color,
+        aligned_H_color = input$aligned_H_color
+      )
+      dev.off()
+    }
+  )
+  
   
   ######## RESULTS TAB ########
   
