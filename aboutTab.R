@@ -2,7 +2,21 @@ AboutTab <- tabPanel(
   "About",
   # MiNAA: Microbiome Network Alignment Algorithm
   h2("About MiNAA"),
-  p("MiNAA aligns two networks based their topologies and biologies."),
+  p("MiNAA aligns two networks based on their topologies and biologies."),
+  
+  # Embedded YouTube video
+  h3("Introduction Video"),
+  tags$div(
+    tags$iframe(
+      src = "https://www.youtube.com/embed/S9PaA49xyBU",  # Corrected embed URL
+      width = "560",  # Width of the video
+      height = "315", # Height of the video
+      frameborder = "0",
+      allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture",
+      allowfullscreen = TRUE
+    )
+  ),
+  
   h3("Inputs"),
   h4("G, H: the pair of networks to align"),
   tags$ul(
@@ -32,9 +46,9 @@ AboutTab <- tabPanel(
     tags$li("log.txt: Record of the important details from the alignment."),
     tags$li("X_gdvs.csv: (where \"X\" is the input network) The Graphlet Degree Vectors for network \"X\"."),
     tags$li("top_costs.csv: The topological cost matrix."),
-    tags$li("bio_costs.csv: The biologocal cost matrix (as inputed). Not created unless biological input is given."),
+    tags$li("bio_costs.csv: The biological cost matrix (as inputed). Not created unless biological input is given."),
     tags$li("overall_costs.csv: The combination of the topological and biological cost matrix. Not created unless biological input is given."),
-    tags$li("alignment_list.csv: A complete list of all aligned nodes, with rows in the format `g_node,h_node,similarity`, descending acording to similarity. The first row in this list is the total cost of the alignment, or the sum of (1 - similarity) for all aligned pairs."),
+    tags$li("alignment_list.csv: A complete list of all aligned nodes, with rows in the format `g_node,h_node,similarity`, descending according to similarity. The first row in this list is the total cost of the alignment, or the sum of (1 - similarity) for all aligned pairs."),
     tags$li("alignment_matrix.csv: A matrix form of the same alignment, where the first column and row are the labels from the two input networks, respectively.")
   ),
   h3("Examples"),
@@ -59,7 +73,7 @@ AboutTab <- tabPanel(
     "Users interested in expanding functionalities in MiNAA are welcome to do so. Issues reports are encouraged through the",
     a(href = "https://github.com/solislemuslab/minaa/issues", "issue tracker"),
     "on Github. See details on how to contribute and report issues in",
-    a(href = "https://github.com/solislemuslab/minaa/blob/master/CONTRIBUTING.md)", "CONTRIBUTING.md"),
+    a(href = "https://github.com/solislemuslab/minaa/blob/master/CONTRIBUTING.md", "CONTRIBUTING.md"),
     "on github."
   ),
   h2("License"),

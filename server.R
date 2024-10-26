@@ -1,5 +1,7 @@
 options(shiny.maxRequestSize = 10*2^20) # raise limit from 5MB default to 10MB
 library(igraph)
+library(colourpicker)
+
 
 # Define the plot_aligned_networks function outside the server function
 plot_aligned_networks <- function(adj_G, adj_A, alignment_GA, th_align, zero_degree, vertex_label_value, size_aligned,
@@ -100,6 +102,12 @@ function(input, output, session) {
   ######## RUN TAB ########
   plotGenerated <- reactiveVal(FALSE)  
   output_dir <- "alignments/"
+  hidden_temp_dir <- ".temp"
+  
+  # Ensure the hidden directory exists
+  if (!dir.exists(hidden_temp_dir)) {
+    dir.create(hidden_temp_dir)
+  }
   
   # Reactive values to store matrices for use in both plot and download
   reactiveData <- reactiveValues(
@@ -140,12 +148,22 @@ function(input, output, session) {
       return()  # Stop execution if validation fails
     }
     
+    # Copy uploaded files to the hidden_temp_dir with their original names
+    G <- file.path(hidden_temp_dir, input$align_GFile$name)
+    H <- file.path(hidden_temp_dir, input$align_HFile$name)
+    
+    file.copy(input$align_GFile$datapath, G, overwrite = TRUE)
+    file.copy(input$align_HFile$datapath, H, overwrite = TRUE)
+    
     # Get file paths and user inputs
-    G <- input$align_GFile$datapath
-    H <- input$align_HFile$datapath
-    B <- input$align_BFile$datapath  # Optional
+    #G <- input$align_GFile$name
+    #print(G)
+    #H <- input$align_HFile$name
+    B <- input$align_BFile$name  # Optional
     a <- input$alphaIn
     b <- input$betaIn
+    
+    #print(G)
     
     # Build the arguments for the system call
     arg_G <- paste0(" ", G)
@@ -153,7 +171,7 @@ function(input, output, session) {
     arg_B <- ifelse(is.null(B), "", paste0(" -B=", B))  # B is optional
     arg_a <- ifelse(is.null(a) || is.na(a), "", paste0(" -a=", a))
     arg_b <- ifelse(is.null(b) || is.na(b), "", paste0(" -b=", b))
-    arg_s <- ifelse(input$is_bio_matrix, " -s", "")  # Add '-s' flag if 'is_bio_matrix' is TRUE
+    arg_s <- ifelse(input$matrix_type == "similarity", " -s", "")
     arg_p <- " -p"  # Assuming -p is always required
     
     args <- paste0("./minaa.exe", arg_G, arg_H, arg_B, arg_a, arg_b, arg_s, arg_p)
@@ -272,63 +290,205 @@ function(input, output, session) {
   
   resultDirectory <- './alignments'
   
-  # Handle result selection
-  output$select.folder <-
-    renderUI(expr = selectInput(inputId = 'folder.name',
-                                label = 'Result Folder',
-                                choices = list.dirs(path = resultDirectory,
-                                                    full.names = FALSE,
-                                                    recursive = FALSE)))
-  output$select.file <-
-    renderUI(expr = selectInput(inputId = 'file.name',
-                                label = 'File',
-                                choices = list.files(path = file.path(resultDirectory,
-                                                                      input$folder.name))))
-  
-  # Display the selected file
-  output$file.content <- renderText({
-    file_path <- file.path(resultDirectory, input$folder.name, input$file.name)
-    file_content <- readLines(file_path)
-    paste(file_content, collapse = '\n')
+  # Dynamically populate folder choices
+  output$select.folder <- renderUI({
+    selectInput(inputId = 'folder.name',
+                label = 'Result Folder',
+                choices = list.dirs(path = resultDirectory,
+                                    full.names = FALSE,
+                                    recursive = FALSE))
   })
   
-  # Download the selected folder
+  # Dynamically populate file choices when a folder is selected
+  observeEvent(input$folder.name, {
+    files <- list.files(path = file.path(resultDirectory, input$folder.name))
+    updatePickerInput(session, "file.name", choices = files)
+    
+    # Extract the network names (for G and H) from the uploaded files (assuming they are present)
+    g_gdvs_file <- grep("_gdvs.csv", files, value = TRUE, fixed = TRUE)
+    
+    if (length(g_gdvs_file) >= 2) {
+      # Assuming the first is G and the second is H
+      g_file <- g_gdvs_file[1]
+      h_file <- g_gdvs_file[2]
+      
+      # Dynamically update G and H Graphlet files
+      output$metadata_g_file <- renderUI({
+        p(paste(g_file, ": Graphlet Degree Vectors for network G."))
+      })
+      
+      output$metadata_h_file <- renderUI({
+        p(paste(h_file, ": Graphlet Degree Vectors for network H."))
+      })
+      
+      # Dynamically update g.csv and h.csv files
+      g_csv <- sub("_gdvs.csv", ".csv", g_file)
+      h_csv <- sub("_gdvs.csv", ".csv", h_file)
+      
+      output$metadata_g_csv <- renderUI({
+        p(paste(g_csv, ": Processed data for network G."))
+      })
+      
+      output$metadata_h_csv <- renderUI({
+        p(paste(h_csv, ": Processed data for network H."))
+      })
+    }
+  })
+  
+  # Display alignment list when the alignment_list.csv is selected
+  output$alignment.list <- renderTable({
+    if (is.null(input$folder.name)) {
+      return(NULL)  # No folder selected, don't display anything
+    }
+    
+    # Define the file path for the alignment list
+    file_path <- file.path(resultDirectory, input$folder.name, "alignment_list.csv")
+    
+    # Check if the file exists in the folder
+    if (file.exists(file_path)) {
+      # Read the alignment_list.csv file and display it as a table
+      alignment_data <- read.csv(file_path)
+      
+      # Filter the data based on the threshold input (assuming 3rd column is the threshold)
+      threshold <- input$threshold
+      filtered_data <- alignment_data[alignment_data[, 3] >= threshold, ]
+      
+      # Return the filtered data
+      return(filtered_data)
+      
+    } else {
+      return(NULL)  # File doesn't exist, return NULL to show nothing
+    }
+  })
+  
+  # Download the selected files as a zip archive
   output$download.folder <- downloadHandler(
     filename = function() {
       paste(input$folder.name, ".zip", sep = "")
     },
     content = function(file) {
-      zip::zipr(zipfile = file, files = file.path(resultDirectory, input$folder.name), recurse = TRUE)
+      # Zip selected files from the selected folder
+      selected_files <- input$file.name
+      file_paths <- file.path(resultDirectory, input$folder.name, selected_files)
+      
+      zip::zipr(zipfile = file, files = file_paths)
     }
   )
   
-  # Upload Dataset // Probably cancel this
-  observeEvent(input$unzip, {
-    
-    if (is.null(input$zipfile)) {
-      return()
-    }
-    
-    unzip_dir <- "alignments"
-    file_name <- tools::file_path_sans_ext(basename(input$zipfile$name))
-    unzip_dir <- file.path(unzip_dir, file_name)
-    unzip(input$zipfile$datapath, exdir = unzip_dir, junkpaths = TRUE)
-    
-    # Refresh dataset dropdown
-    resultDirectory <- './alignments'
-    output$select.folder <-
-      renderUI(expr = selectInput(inputId = 'folder.name',
-                                  label = 'Dataset',
-                                  choices = list.dirs(path = resultDirectory,
-                                                      full.names = FALSE,
-                                                      recursive = FALSE)))
-    
-    # Check resulting files to make sure formats are correct?
-    # Check resulting files to make sure not too big?
-  })
+
   
   ######## VISUALIZE TAB ########
-  visualizeDirectory <- './alignments'
+  
+  # Define reactive values for data
+  reactiveData <- reactiveValues(adj_G = NULL, adj_A = NULL, alignment_GA = NULL)
+  
+  # Handle the execution on clicking the submit button
+  observeEvent(input$vis_submitInputs, {
+    
+    # Validation checks for file uploads
+    if (is.null(input$vis_GFile)) {
+      showNotification("Error: Please upload a file for Network G.", type = "error", duration = 5)
+      return()  # Stop execution if validation fails
+    }
+    
+    if (is.null(input$vis_HFile)) {
+      showNotification("Error: Please upload a file for Network H.", type = "error", duration = 5)
+      return()  # Stop execution if validation fails
+    }
+    
+    if (is.null(input$vis_AFile)) {
+      showNotification("Error: Please upload an alignment matrix file.", type = "error", duration = 5)
+      return()  # Stop execution if validation fails
+    }
+    
+    # Load the G and H adjacency matrices and alignment matrix (assuming CSV format)
+    reactiveData$adj_G <- as.matrix(read.csv(input$vis_GFile$datapath, row.names = 1))
+    reactiveData$adj_A <- as.matrix(read.csv(input$vis_HFile$datapath, row.names = 1))
+    reactiveData$alignment_GA <- as.matrix(read.csv(input$vis_AFile$datapath, row.names = 1))
+    
+    # Get user-defined parameters for the plot
+    th_align <- input$vis_th_align
+    zero_degree <- input$vis_zero_degree
+    vertex_label_value <- input$vis_vertex_label_value
+    size_aligned <- input$vis_size_aligned
+    node_G_color <- input$vis_node_G_color
+    node_H_color <- input$vis_node_H_color
+    edge_G_color <- input$vis_edge_G_color
+    edge_H_color <- input$vis_edge_H_color
+    line_GH_color <- input$vis_line_GH_color
+    aligned_G_color <- input$vis_aligned_G_color
+    aligned_H_color <- input$vis_aligned_H_color
+    
+    # Render the plot in a separate output area (networkPlot)
+    output$vis_networkPlot <- renderPlot({
+      plot_aligned_networks(
+        adj_G = reactiveData$adj_G,
+        adj_A = reactiveData$adj_A,
+        alignment_GA = reactiveData$alignment_GA,
+        th_align = th_align,
+        zero_degree = zero_degree,
+        vertex_label_value = vertex_label_value,
+        size_aligned = size_aligned,
+        node_G_color = node_G_color,
+        node_H_color = node_H_color,
+        edge_G_color = edge_G_color,
+        edge_H_color = edge_H_color,
+        line_GH_color = line_GH_color,
+        aligned_G_color = aligned_G_color,
+        aligned_H_color = aligned_H_color
+      )
+      plotGenerated(TRUE)
+    }, height = 1000, width = 1000)
+    
+    output$vis_plotGenerated <- reactive({
+      plotGenerated()
+    })
+    
+    outputOptions(output, "vis_plotGenerated", suspendWhenHidden = FALSE)  # Required for conditional rendering
+    
+    # Show notification when the plot is generated
+    showNotification("Plot generated successfully.", type = "message")
+  })
+  
+  # Download plot as PNG or JPEG
+  output$vis_downloadPlot <- downloadHandler(
+    filename = function() {
+      format <- input$vis_downloadFormat
+      paste0("network_plot_", Sys.Date(), ".", tolower(format))
+    },
+    content = function(file) {
+      width <- 12  # Width in inches
+      height <- 12  # Height in inches
+      dpi <- 300  # Resolution in DPI
+      
+      # Use png() or jpeg() depending on selected format
+      if (input$vis_downloadFormat == "PNG") {
+        png(file, width = width, height = height, units = "in", res = dpi)
+      } else {
+        jpeg(file, width = width, height = height, units = "in", res = dpi)
+      }
+      
+      # Recreate the plot here
+      plot_aligned_networks(
+        adj_G = reactiveData$adj_G,
+        adj_A = reactiveData$adj_A,
+        alignment_GA = reactiveData$alignment_GA,
+        th_align = input$vis_th_align,
+        zero_degree = input$vis_zero_degree,
+        vertex_label_value = input$vis_vertex_label_value,
+        size_aligned = input$vis_size_aligned,
+        node_G_color = input$vis_node_G_color,
+        node_H_color = input$vis_node_H_color,
+        edge_G_color = input$vis_edge_G_color,
+        edge_H_color = input$vis_edge_H_color,
+        line_GH_color = input$vis_line_GH_color,
+        aligned_G_color = input$vis_aligned_G_color,
+        aligned_H_color = input$vis_aligned_H_color
+      )
+      dev.off()
+    }
+  )
+  #visualizeDirectory <- './alignments'
   
   # Handle result selection
   # output$select.visfolder <-

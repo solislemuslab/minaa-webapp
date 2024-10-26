@@ -1,3 +1,7 @@
+library(colourpicker)
+library(shiny)
+library(shinyWidgets)
+
 AlignTab <- tabPanel(
   "Run",
   sidebarLayout(
@@ -28,13 +32,12 @@ AlignTab <- tabPanel(
           placeholder = "No file selected"
         ),
         
-        # Checkbox for biological similarity matrix
-        checkboxInput(
-          "is_bio_matrix", 
-          "Is the input a biological similarity matrix?", 
-          value = FALSE
+        radioButtons(
+          inputId = "matrix_type",
+          label = "Select Biological Matrix Type:",
+          choices = list("Cost Matrix" = "cost", "Similarity Matrix" = "similarity"),
+          selected = "cost"  # Default selection is "Cost Matrix"
         ),
-        
         # Generate visual checkbox
         checkboxInput("do_vis", "Generate Visual", TRUE),
         
