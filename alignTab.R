@@ -168,6 +168,7 @@ AlignTab <- tabPanel(
     ),
     
     mainPanel(
+      uiOutput("alignmentSummaryUI"),
       # Plotly plot output with specified dimensions
       plotlyOutput("networkPlot", height = "1000px", width = "1000px"),
       

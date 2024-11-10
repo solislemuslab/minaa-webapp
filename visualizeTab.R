@@ -125,20 +125,10 @@ VisualizeTab <- tabPanel(
     ),
     
     mainPanel(
-      # Set the style of the verbatimTextOutput box
-      tags$head(
-        tags$style(
-          HTML(".my-verbatim { max-height: 200px; overflow-y: auto; }")
-        )
-      ),
-      
-      # Display uploaded data previews (optional)
-      verbatimTextOutput("vis_vis_GTable"),  # Unique ID
-      verbatimTextOutput("vis_vis_HTable"),  # Unique ID
-      verbatimTextOutput("vis_vis_ATable"),  # Unique ID
-      
+      uiOutput("alignmentSummaryUI_"),
+
       # Network plot output
-      plotOutput("vis_networkPlot", height = "1000px", width = "1000px"),  # Unique ID
+      plotlyOutput("vis_networkPlot",height = "1000px", width = "1000px"),  # Unique ID
       
       # Conditional panel to show download button only when plot is generated
       conditionalPanel(
@@ -152,7 +142,8 @@ VisualizeTab <- tabPanel(
                  downloadButton("vis_downloadPlot", "Download Plot")  # Unique ID
           )
         )
-      )
+      ),
+      uiOutput("nameMappingUI_")
     )
   )
 )
