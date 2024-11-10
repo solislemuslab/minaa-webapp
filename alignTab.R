@@ -1,6 +1,10 @@
-library(colourpicker)
+# Load required libraries
 library(shiny)
 library(shinyWidgets)
+library(colourpicker)
+library(shinyBS)  # For popovers
+library(plotly)
+
 
 AlignTab <- tabPanel(
   "Run",
@@ -8,10 +12,11 @@ AlignTab <- tabPanel(
     sidebarPanel(
       fluidRow(
         h4("Upload Networks and Data"),
+        
         # Input network G
         fileInput(
           "align_GFile",
-          "Upload Network G (Required)", 
+          "Upload Network G (Required)",
           accept = c(".csv", ".tsv"), 
           placeholder = "No file selected"
         ),
@@ -19,7 +24,7 @@ AlignTab <- tabPanel(
         # Input network H
         fileInput(
           "align_HFile", 
-          "Upload Network H (Required)", 
+          "Upload Network H (Required)",
           accept = c(".csv", ".tsv"), 
           placeholder = "No file selected"
         ),
@@ -27,24 +32,26 @@ AlignTab <- tabPanel(
         # Input biological data
         fileInput(
           "align_BFile", 
-          "Upload Biological Data (Optional)", 
+          "Upload Biological Data (Optional)",
           accept = c(".csv", ".tsv"), 
           placeholder = "No file selected"
         ),
         
+        # Biological matrix type
         radioButtons(
           inputId = "matrix_type",
           label = "Select Biological Matrix Type:",
           choices = list("Cost Matrix" = "cost", "Similarity Matrix" = "similarity"),
-          selected = "cost"  # Default selection is "Cost Matrix"
+          selected = "cost"
         ),
+        
         # Generate visual checkbox
         checkboxInput("do_vis", "Generate Visual", TRUE),
         
-        tags$hr()  # Horizontal line for separation
+        tags$hr()
       ),
       
-      # Alignment parameters in a collapsible section
+      # Alignment parameters with question mark popovers
       fluidRow(
         h4("Alignment Parameters"),
         tags$details(
@@ -52,29 +59,31 @@ AlignTab <- tabPanel(
           column(6,
                  numericInput(
                    "alphaIn", 
-                   label = "\U03B1 (Alpha)", 
+                   label = HTML("\U03B1 (Alpha) [Range: 0 - 1] <a id='info_alphaIn' href='#' style='text-decoration:none;'><i class='fa fa-question-circle'></i></a>"), 
                    value = 1, 
                    min = 0, 
                    max = 1, 
                    step = 0.01
-                 )
+                 ),
+                 bsTooltip("info_alphaIn",  "The GDV-edge weight balancer", "right")
           ),
           column(6,
                  numericInput(
                    "betaIn", 
-                   label = "\U03B2 (Beta)", 
+                   label = HTML("\U03B2 (Beta) [Range: 0 - 1] <a id='info_betaIn' href='#' style='text-decoration:none;'><i class='fa fa-question-circle'></i></a>"), 
                    value = 1, 
                    min = 0, 
                    max = 1, 
                    step = 0.01
-                 )
+                 ),
+                 bsTooltip("info_betaIn", "The topological-biological cost matrix balancer", "right")
           ),
           
-          tags$hr()  # Horizontal line for separation
+          tags$hr()
         )
       ),
       
-      # Size and Degree Parameters
+      # Size and Degree Parameters with question mark popovers
       fluidRow(
         h4("Size and Degree Parameters"),
         tags$details(
@@ -82,88 +91,89 @@ AlignTab <- tabPanel(
           column(6,
                  numericInput(
                    "size_aligned", 
-                   "Size Aligned", 
+                   label = HTML("Size Aligned <a id='info_size_aligned' href='#' style='text-decoration:none;'><i class='fa fa-question-circle'></i></a>"), 
                    value = 1, 
                    step = 1
-                 )
+                 ),
+                 bsTooltip("info_size_aligned", "Sizes of aligned nodes.", placement = "right")
           ),
+          
           column(6,
                  numericInput(
                    "zero_degree", 
-                   "Degree Align", 
+                   label = HTML("Degree Align <a id='info_zero_degree' href='#' style='text-decoration:none;'><i class='fa fa-question-circle'></i></a>"), 
                    value = 0, 
                    step = 1
-                 )
+                 ),
+                 bsTooltip("info_zero_degree", "Minimum degree to show nodes in the graph.", placement = "right")
           ),
           column(6,
                  numericInput(
                    "th_align", 
-                   "Threshold Align", 
+                   label = HTML("Threshold Align <a id='info_th_align' href='#' style='text-decoration:none;'><i class='fa fa-question-circle'></i></a>"), 
                    value = 0.5, 
                    step = 0.01
-                 )
+                 ),
+                 bsTooltip("info_th_align", "Minimum threshold values required for alignment.", placement = "right")
           ),
           column(6,
                  numericInput(
                    "vertex_label_value", 
-                   "Vertex Label Value", 
+                   label = HTML("Vertex Label Value <a id='info_vertex_label_value' href='#' style='text-decoration:none;'><i class='fa fa-question-circle'></i></a>"), 
                    value = 0.5, 
                    step = 0.01
-                 )
+                 ),
+                 bsTooltip("info_vertex_label_value", "Size of the node label", placement = "right")
           ),
           
-          tags$hr()  # Horizontal line for separation
+          tags$hr()
         )
       ),
       
-      # Color Options
+      # Color Options without question mark popovers
       fluidRow(
         h4("Color Options"),
         tags$details(
           tags$summary("Show/Hide Color Options"),
           column(6,
-                 colourInput("node_G_color", "Color for Nodes in G", value = "#FF0000")
+                 colourInput("node_G_color", "Color for Nodes in G", value = "#3F8C61")
           ),
           column(6,
-                 colourInput("node_H_color", "Color for Nodes in H", value = "#00FF00")
+                 colourInput("node_H_color", "Color for Nodes in H", value = "#11A0D9")
           ),
           column(6,
-                 colourInput("edge_G_color", "Color for Edges in G", value = "#0000FF")
+                 colourInput("edge_G_color", "Color for Edges in G", value = "grey")
           ),
           column(6,
-                 colourInput("edge_H_color", "Color for Edges in H", value = "#FFFF00")
+                 colourInput("edge_H_color", "Color for Edges in H", value = "grey")
           ),
           column(6,
-                 colourInput("aligned_G_color", "Color for Aligned Nodes in G", value = "#11A0D9")
+                 colourInput("aligned_G_color", "Color for Aligned Nodes in G", value = "#F2B705")
           ),
           column(6,
-                 colourInput("aligned_H_color", "Color for Aligned Nodes in H", value = "#44AA99")
+                 colourInput("aligned_H_color", "Color for Aligned Nodes in H", value = "#F2B705")
           ),
           column(12,
-                 colourInput("line_GH_color", "Color for alignments between G and H", value = "#000000")
+                 colourInput("line_GH_color", "Color for alignments between G and H", value = "#9491D9")
           ),
           
-          tags$hr()  # Horizontal line for separation
+          tags$hr()
         )
       ),
       
-      # Run button
+      # Run button without question mark popover
       fluidRow(
         actionButton("submitInputs", label = "Run", class = "btn-primary", width = "100%")
       )
     ),
     
     mainPanel(
-      tags$head(
-        tags$style(
-          HTML(".my-verbatim { max-height: 200px; overflow-y: auto; }")
-        )
-      ),
-      plotOutput("networkPlot", height = "1000px", width = "1000px"),  # Adjusted plot dimensions
+      # Plotly plot output with specified dimensions
+      plotlyOutput("networkPlot", height = "1000px", width = "1000px"),
       
       # Conditional panel to show download button only when plot is generated
       conditionalPanel(
-        condition = "output.plotGenerated == true",  # Renders only when the plot is generated
+        condition = "output.plotGenerated == true",  # Shows only when the plot is generated
         fluidRow(
           column(6, 
                  selectInput("downloadFormat", "Select Format", 
@@ -173,7 +183,15 @@ AlignTab <- tabPanel(
                  downloadButton("downloadPlot", "Download Plot")
           )
         )
-      )
+      ),
+      
+      # Header for Name Mapping Table
+      #h4("Name Mapping Table"),
+      
+      # Conditional UI output for displaying the name mapping table if truncation occurs
+      uiOutput("nameMappingUI")
     )
+    
   )
 )
+

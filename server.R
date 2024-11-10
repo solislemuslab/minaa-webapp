@@ -1,102 +1,188 @@
 options(shiny.maxRequestSize = 10*2^20) # raise limit from 5MB default to 10MB
-library(igraph)
 library(colourpicker)
+library(jpeg)
+library(png)
+library(igraph)
+library(plotly)
+library(htmlwidgets)
+library(webshot)  # install.packages("webshot")
+webshot::install_phantomjs()  #
 
-
-# Define the plot_aligned_networks function outside the server function
 plot_aligned_networks <- function(adj_G, adj_A, alignment_GA, th_align, zero_degree, vertex_label_value, size_aligned,
                                   node_G_color, node_H_color, edge_G_color, edge_H_color, line_GH_color, aligned_G_color, aligned_H_color) {
   
+  # Set a character limit for truncation
+  name_limit <- 5
+  
+  # Function to truncate names if they exceed the limit and add a suffix for uniqueness
+  truncate_name <- function(name, suffix) {
+    if (nchar(name) > name_limit) {
+      paste0(substr(name, 1, name_limit), suffix)
+    } else {
+      name
+    }
+  }
+  
   # Create graph objects from adjacency matrices for G and A
   graph_G <- graph_from_adjacency_matrix(adj_G, mode="undirected")
-  V(graph_G)$name <- rownames(adj_G)
+  original_names_G <- rownames(adj_G)
   
   graph_A <- graph_from_adjacency_matrix(adj_A, mode="undirected")
-  V(graph_A)$name <- rownames(adj_A)
+  original_names_A <- rownames(adj_A)
+  
+  # Apply truncation to names in G and A with unique suffixes for each node
+  truncated_names_G <- mapply(truncate_name, original_names_G, seq_len(vcount(graph_G)))
+  truncated_names_A <- mapply(truncate_name, original_names_A, seq_len(vcount(graph_A)))
+  
+  # Update names in the graph objects
+  V(graph_G)$name <- truncated_names_G
+  V(graph_A)$name <- truncated_names_A
+  
+  # Check if any truncation occurred
+  truncated <- any(c(truncated_names_G != original_names_G, truncated_names_A != original_names_A))
+  
+  # Create name mapping table only if truncation occurred
+  name_mapping <- if (truncated) {
+    data.frame(
+      Original_Name = c(original_names_G, original_names_A),
+      Truncated_Name = c(truncated_names_G, truncated_names_A)
+    )
+  } else {
+    NULL  # No truncation, so no mapping table needed
+  }
+  
+  # Set truncated names in the graph objects
+  V(graph_G)$name <- truncated_names_G
+  V(graph_A)$name <- truncated_names_A
   
   # Identify aligned nodes based on alignment threshold
   alignment_indices <- which(alignment_GA >= th_align, arr.ind=TRUE)
   aligned_nodes_G <- V(graph_G)$name[alignment_indices[, 1]]
   aligned_nodes_A <- V(graph_A)$name[alignment_indices[, 2]]
   
-  # Optionally remove nodes with degree 0, except aligned nodes
-  zero_deg_nodes_G <- V(graph_G)[degree(graph_G) < zero_degree & !(V(graph_G)$name %in% aligned_nodes_G)]
-  zero_deg_nodes_A <- V(graph_A)[degree(graph_A) < zero_degree & !(V(graph_A)$name %in% aligned_nodes_A)]
-  graph_G <- delete.vertices(graph_G, zero_deg_nodes_G)
-  graph_A <- delete.vertices(graph_A, zero_deg_nodes_A)
+  # Remove zero-degree nodes, excluding aligned nodes
+  graph_G <- delete.vertices(graph_G, V(graph_G)[degree(graph_G) < zero_degree & !(V(graph_G)$name %in% aligned_nodes_G)])
+  graph_A <- delete.vertices(graph_A, V(graph_A)[degree(graph_A) < zero_degree & !(V(graph_A)$name %in% aligned_nodes_A)])
   
-  # Re-calculate aligned nodes after node removal
+  # Re-identify aligned node indices after removing nodes
   aligned_indices_G <- match(aligned_nodes_G, V(graph_G)$name)
   aligned_indices_A <- match(aligned_nodes_A, V(graph_A)$name)
+  aligned_indices_G <- aligned_indices_G[!is.na(aligned_indices_G)]
+  aligned_indices_A <- aligned_indices_A[!is.na(aligned_indices_A)]
   
-  # Filter out NA values from aligned indices
-  valid_indices <- which(!is.na(aligned_indices_G) & !is.na(aligned_indices_A))
-  aligned_indices_G <- aligned_indices_G[valid_indices]
-  aligned_indices_A <- aligned_indices_A[valid_indices]
+  # Circular Layout for G and A with a moderate radius
+  radius <- 7  # Moderate radius for each circle to spread nodes without making the layout too large
+  layout_G <- layout_in_circle(graph_G) * radius - cbind(rep(9, nrow(layout_in_circle(graph_G))), rep(0, nrow(layout_in_circle(graph_G))))  # Shift G to the left
+  layout_A <- layout_in_circle(graph_A) * radius + cbind(rep(9, nrow(layout_in_circle(graph_A))), rep(0, nrow(layout_in_circle(graph_A))))  # Shift A to the right
   
-  # Create a combined graph for visualization (disjoint union of G and A)
-  combined_graph <- graph.disjoint.union(graph_G, graph_A)
+  # Adjust aligned nodes to be directly opposite each other on each circle
+  num_aligned <- min(length(aligned_indices_G), length(aligned_indices_A))
+  angle_step <- pi / (num_aligned + 1)
+  start_angle <- pi / 2
   
-  # Define circular layout for G and A separately
-  layout_G <- layout_in_circle(graph_G)
-  layout_A <- layout_in_circle(graph_A)
-  
-  # Adjust the layout so that aligned nodes are directly opposite each other
-  adjust_opposite_positions <- function(layout_G, layout_A, indices_G, indices_A) {
-    num_nodes <- length(indices_G)
-    angle_step <- pi / (num_nodes + 1)
-    start_angle <- pi / 2
-    
-    for (i in seq_along(indices_G)) {
-      angle <- start_angle - (i * angle_step)
-      layout_G[indices_G[i], ] <- c(cos(angle), sin(angle))
-      layout_A[indices_A[i], ] <- c(-cos(angle), sin(angle))
-    }
-    return(list(layout_G, layout_A))
-  }
-  
-  # Adjust positions for aligned nodes
-  layouts <- adjust_opposite_positions(layout_G, layout_A, aligned_indices_G, aligned_indices_A)
-  layout_G <- layouts[[1]]
-  layout_A <- layouts[[2]]
-  
-  # Reduce the separation distance between G and A networks
-  layout_G <- layout_G - cbind(rep(3, nrow(layout_G)), rep(0, nrow(layout_G)))  # Increase the gap between networks
-  layout_A <- layout_A + cbind(rep(3, nrow(layout_A)), rep(0, nrow(layout_A)))
-  
-  
-  # Combine the layouts of G and A into one layout
-  layout_combined <- rbind(layout_G, layout_A)
-  
-  # Add edges between aligned nodes from G to A in the combined graph
   for (i in seq_along(aligned_indices_G)) {
-    combined_graph <- add_edges(combined_graph, c(aligned_indices_G[i], aligned_indices_A[i] + vcount(graph_G)))
+    angle <- start_angle - (i * angle_step)
+    layout_G[aligned_indices_G[i], ] <- c(cos(angle) * radius - 9, sin(angle) * radius)  # Left circle
+    layout_A[aligned_indices_A[i], ] <- c(-cos(angle) * radius + 9, sin(angle) * radius) # Right circle
   }
   
-  # Define colors for vertices and edges based on user inputs
-  vertex_colors <- c(rep(node_G_color, vcount(graph_G)), rep(node_H_color, vcount(graph_A)))
-  vertex_colors[aligned_indices_G] <- aligned_G_color  # Use the user-defined color for aligned nodes in G
-  vertex_colors[aligned_indices_A + vcount(graph_G)] <- aligned_H_color 
-      
-    edge_colors <- c(rep(edge_G_color, ecount(graph_G)), rep(edge_H_color, ecount(graph_A)), rep(line_GH_color, length(aligned_indices_G)))
-    
-    # Define sizes for vertices and labels based on user inputs
-    vertex_sizes <- rep(1, vcount(combined_graph))
-    vertex_sizes[c(aligned_indices_G, aligned_indices_A + vcount(graph_G))] <- size_aligned
-    
-    vertex_label_sizes <- rep(vertex_label_value, vcount(combined_graph))
-    vertex_label_sizes[c(aligned_indices_G, aligned_indices_A + vcount(graph_G))] <- vertex_label_value
-    
-    # Plot the combined graph with the specified layouts and colors
-    plot(combined_graph, layout=layout_combined,
-         vertex.label=V(combined_graph)$name,  # Add vertex labels
-         vertex.size=vertex_sizes,  # Adjust vertex size for better visualization
-         vertex.label.cex=vertex_label_sizes,  # Adjust label size for readability
-         vertex.color=vertex_colors,  # Set vertex colors
-         edge.color=edge_colors,  # Set edge colors
-         edge.width=c(rep(1, ecount(graph_G) + ecount(graph_A)), rep(2, length(aligned_indices_G))),
-         asp=0)  # Keep aspect ratio constant
+  # Node data frames for Plotly with conditional color assignment
+  nodes_G <- data.frame(
+    x = layout_G[, 1],
+    y = layout_G[, 2],
+    name = V(graph_G)$name,
+    color = ifelse(V(graph_G)$name %in% aligned_nodes_G, aligned_G_color, node_G_color),
+    size = ifelse(V(graph_G)$name %in% aligned_nodes_G, size_aligned, 6)
+  )
+  
+  nodes_A <- data.frame(
+    x = layout_A[, 1],
+    y = layout_A[, 2],
+    name = V(graph_A)$name,
+    color = ifelse(V(graph_A)$name %in% aligned_nodes_A, aligned_H_color, node_H_color),
+    size = ifelse(V(graph_A)$name %in% aligned_nodes_A, size_aligned, 6)
+  )
+  
+  # Edge data for edges within G
+  edgelist_G <- get.edgelist(graph_G, names = FALSE)
+  edges_G <- data.frame(
+    x = layout_G[edgelist_G[, 1], 1],
+    y = layout_G[edgelist_G[, 1], 2],
+    xend = layout_G[edgelist_G[, 2], 1],
+    yend = layout_G[edgelist_G[, 2], 2]
+  )
+  
+  # Edge data for edges within A
+  edgelist_A <- get.edgelist(graph_A, names = FALSE)
+  edges_A <- data.frame(
+    x = layout_A[edgelist_A[, 1], 1],
+    y = layout_A[edgelist_A[, 1], 2],
+    xend = layout_A[edgelist_A[, 2], 1],
+    yend = layout_A[edgelist_A[, 2], 2]
+  )
+  
+  # Edge data for aligned edges between G and A
+  edges_aligned <- data.frame(
+    x = layout_G[aligned_indices_G, 1],
+    y = layout_G[aligned_indices_G, 2],
+    xend = layout_A[aligned_indices_A, 1],
+    yend = layout_A[aligned_indices_A, 2]
+  )
+  
+  # Initialize Plotly plot
+  p <- plot_ly()
+  
+  # Add edges within G with edge_G_color
+  p <- p %>%
+    add_segments(data = edges_G, x = ~x, y = ~y, xend = ~xend, yend = ~yend,
+                 line = list(color = edge_G_color, width = 0.3), showlegend = FALSE)
+  
+  # Add edges within A with edge_H_color
+  p <- p %>%
+    add_segments(data = edges_A, x = ~x, y = ~y, xend = ~xend, yend = ~yend,
+                 line = list(color = edge_H_color, width = 0.3), showlegend = FALSE)
+  
+  # Add aligned edges between G and A with line_GH_color
+  p <- p %>%
+    add_segments(data = edges_aligned, x = ~x, y = ~y, xend = ~xend, yend = ~yend,
+                 line = list(color = line_GH_color, width = 1.5), showlegend = FALSE)
+  
+  # Add nodes from G with explicit colors
+  p <- p %>%
+    add_trace(data = nodes_G, x = ~x, y = ~y, type = 'scatter', mode = 'markers+text',
+              text = ~name, textposition = 'top center',
+              marker = list(color = nodes_G$color, size = nodes_G$size),
+              showlegend = FALSE)
+  
+  # Add nodes from A with explicit colors
+  p <- p %>%
+    add_trace(data = nodes_A, x = ~x, y = ~y, type = 'scatter', mode = 'markers+text',
+              text = ~name, textposition = 'top center',
+              marker = list(color = nodes_A$color, size = nodes_A$size),
+              showlegend = FALSE)
+  
+  # Add titles above networks G and H using annotations
+  p <- p %>%
+    layout(
+      title = "Aligned Network Visualization",
+      xaxis = list(showgrid = FALSE, zeroline = FALSE),
+      yaxis = list(showgrid = FALSE, zeroline = FALSE),
+      showlegend = FALSE,
+      annotations = list(
+        list(
+          x = -9, y = max(layout_G[,2]) + 1, text = "Network G", showarrow = FALSE,
+          xref = "x", yref = "y", font = list(size = 14, color = "black")
+        ),
+        list(
+          x = 9, y = max(layout_A[,2]) + 1, text = "Network H", showarrow = FALSE,
+          xref = "x", yref = "y", font = list(size = 14, color = "black")
+        )
+      )
+    )
+  
+  return(list(plot = p, name_mapping = name_mapping))
 }
+
 
 function(input, output, session) {
   ######## RUN TAB ########
@@ -216,56 +302,86 @@ function(input, output, session) {
       aligned_G_color <- input$aligned_G_color  # Get color for aligned nodes in G
       aligned_H_color <- input$aligned_H_color  # Get color for aligned nodes in H
       
-      # Render the plot in a separate output area (networkPlot)
-      output$networkPlot <- renderPlot({
-        plot_aligned_networks(
-          adj_G = reactiveData$adj_G,
-          adj_A = reactiveData$adj_A,
-          alignment_GA = reactiveData$alignment_GA,
-          th_align = th_align,
-          zero_degree = zero_degree,
-          vertex_label_value = vertex_label_value,
-          size_aligned = size_aligned,
-          node_G_color = node_G_color,
-          node_H_color = node_H_color,
-          edge_G_color = edge_G_color,
-          edge_H_color = edge_H_color,
-          line_GH_color = line_GH_color,
-          aligned_G_color = aligned_G_color,  # Pass aligned G color
-          aligned_H_color = aligned_H_color   # Pass aligned H color
-        )
-        plotGenerated(TRUE)
-      }, height = 1000, width = 1000)
+      # Track plot generation status
+      plotGenerated <- reactiveVal(FALSE)
       
+      # Render the Plotly plot
+      output$networkPlot <- renderPlotly({
+        tryCatch({
+          # Run the plot_aligned_networks function
+          result <- plot_aligned_networks(
+            adj_G = reactiveData$adj_G,
+            adj_A = reactiveData$adj_A,
+            alignment_GA = reactiveData$alignment_GA,
+            th_align = input$th_align,
+            zero_degree = input$zero_degree,
+            vertex_label_value = input$vertex_label_value,
+            size_aligned = input$size_aligned,
+            node_G_color = input$node_G_color,
+            node_H_color = input$node_H_color,
+            edge_G_color = input$edge_G_color,
+            edge_H_color = input$edge_H_color,
+            line_GH_color = input$line_GH_color,
+            aligned_G_color = input$aligned_G_color,
+            aligned_H_color = input$aligned_H_color
+          )
+          
+          # Store the plot and set the plot generation status to TRUE
+          reactiveData$plot <- result$plot
+          reactiveData$name_mapping <- result$name_mapping
+          plotGenerated(TRUE)  # Set plotGenerated to TRUE once the plot is generated
+          
+          # Show notification when the plot is generated
+          showNotification("Plot generated successfully.", type = "message")
+          
+          result$plot
+          
+        }, error = function(e) {
+          print(paste("Error in renderPlotly:", e$message))
+          plotGenerated(FALSE)  # Reset to FALSE on error
+          NULL
+        })
+      })
+      
+      # Output the plot generation status as reactive
       output$plotGenerated <- reactive({
         plotGenerated()
       })
-      outputOptions(output, "plotGenerated", suspendWhenHidden = FALSE)  # Required for conditional rendering
+      outputOptions(output, "plotGenerated", suspendWhenHidden = FALSE)  # Ensure reactive value is available in UI
       
-      # Show notification when the plot is generated
-      showNotification("Plot generated successfully.", type = "message")
+      # Render the name mapping table only if truncation occurred
+      output$nameMappingTable <- renderTable({
+        if (!is.null(reactiveData$name_mapping)) {
+          reactiveData$name_mapping
+        } else {
+          NULL  # No table if no truncation occurred
+        }
+      })
+      
+      # Conditional UI for displaying the table or a message
+      output$nameMappingUI <- renderUI({
+        if (!is.null(reactiveData$name_mapping)) {
+          # Display the table if truncation occurred
+          tagList(
+            h4("Name Mapping Table"),
+            tableOutput("nameMappingTable")
+          )
+        } else {
+          # Display message if no truncation occurred
+          p("No names were truncated.")
+        }
+      })
     }
   })
   
-  # Download plot as PNG or JPEG
   output$downloadPlot <- downloadHandler(
     filename = function() {
       format <- input$downloadFormat
       paste0("network_plot_", Sys.Date(), ".", tolower(format))
     },
     content = function(file) {
-      width <- 12  # Width in inches
-      height <- 12  # Height in inches
-      dpi <- 300  # Resolution in DPI
-      
-      # Use png() or jpeg() depending on selected format
-      if (input$downloadFormat == "PNG") {
-        png(file, width = width, height = height, units = "in", res = dpi)
-      } else {
-        jpeg(file, width = width, height = height, units = "in", res = dpi)
-      }
-      # Recreate the plot here
-      plot_aligned_networks(
+      # Generate the plot using the plot_aligned_networks function
+      p <- plot_aligned_networks(
         adj_G = reactiveData$adj_G,
         adj_A = reactiveData$adj_A,
         alignment_GA = reactiveData$alignment_GA,
@@ -281,9 +397,27 @@ function(input, output, session) {
         aligned_G_color = input$aligned_G_color,
         aligned_H_color = input$aligned_H_color
       )
-      dev.off()
+      
+      # Save as HTML temporarily
+      temp_html <- tempfile(fileext = ".html")
+      saveWidget(as_widget(p), temp_html, selfcontained = TRUE)
+      
+      # Convert HTML to high-resolution PNG
+      temp_png <- tempfile(fileext = ".png")
+      webshot(temp_html, file = temp_png, vwidth = 2400, vheight = 2400, zoom = 3)
+      
+      # If JPEG is requested, convert PNG to JPEG
+      if (input$downloadFormat == "JPEG") {
+        img <- readPNG(temp_png)
+        writeJPEG(img, target = file, quality = 1)  # Save as JPEG with high quality
+      } else {
+        # If PNG is requested, just copy the PNG file to the download file path
+        file.copy(temp_png, file)
+      }
     }
   )
+  
+  
   
   
   ######## RESULTS TAB ########
@@ -352,6 +486,9 @@ function(input, output, session) {
       # Filter the data based on the threshold input (assuming 3rd column is the threshold)
       threshold <- input$threshold
       filtered_data <- alignment_data[alignment_data[, 3] >= threshold, ]
+      
+      # Rename the columns to "Network" and "Alignment Score"
+      colnames(filtered_data)[1:3] <- c("NetworkG", "NetworkH","Alignment Score")
       
       # Return the filtered data
       return(filtered_data)
