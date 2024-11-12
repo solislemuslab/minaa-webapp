@@ -174,7 +174,7 @@ AlignTab <- tabPanel(
       
       # Conditional panel to show download button only when plot is generated
       conditionalPanel(
-        condition = "output.plotGenerated == true",  # Shows only when the plot is generated
+        condition = "output.plotGenerated",  # Shows only when the plot is generated
         fluidRow(
           column(6, 
                  selectInput("downloadFormat", "Select Format", 

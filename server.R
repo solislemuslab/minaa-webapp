@@ -358,10 +358,10 @@ function(input, output, session) {
       })
       
       # Output the plot generation status as reactive
-      #output$plotGenerated <- reactive({
-        #plotGenerated()
-      #})
-      #outputOptions(output, "plotGenerated", suspendWhenHidden = FALSE)  # Ensure reactive value is available in UI
+      output$plotGenerated <- reactive({
+        plotGenerated()
+      })
+      outputOptions(output, "plotGenerated", suspendWhenHidden = FALSE)  # Ensure reactive value is available in UI
       
       
       # Calculate alignment metrics after plot is generated
