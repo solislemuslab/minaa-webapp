@@ -479,46 +479,45 @@ function(input, output, session) {
   
   output$downloadPlot <- downloadHandler(
     filename = function() {
-      format <- input$downloadFormat
-      paste0("network_plot_", Sys.Date(), ".", tolower(format))
+      paste0("network_plot_", Sys.Date(), ".", tolower(input$downloadFormat))  # Use the selected format
     },
+    
     content = function(file) {
-      # Generate the plot using the plot_aligned_networks function
-      p <- plot_aligned_networks(
-        adj_G = reactiveData$adj_G,
-        adj_A = reactiveData$adj_A,
-        alignment_GA = reactiveData$alignment_GA,
-        th_align = input$th_align,
-        zero_degree = input$zero_degree,
-        #vertex_label_value = input$vertex_label_value,
-        size_aligned = input$size_aligned,
-        node_G_color = input$node_G_color,
-        node_H_color = input$node_H_color,
-        edge_G_color = input$edge_G_color,
-        edge_H_color = input$edge_H_color,
-        line_GH_color = input$line_GH_color,
-        aligned_G_color = input$aligned_G_color,
-        aligned_H_color = input$aligned_H_color
-      )
+      # Check if the plot exists
+      if (is.null(reactiveData$plot)) {
+        showNotification("No plot to download.", type = "error")
+        return()
+      }
       
-      # Save as HTML temporarily
+      # Save the Plotly plot as an HTML file
       temp_html <- tempfile(fileext = ".html")
-      saveWidget(as_widget(p), temp_html, selfcontained = TRUE)
+      saveWidget(as_widget(reactiveData$plot), temp_html, selfcontained = TRUE)
       
-      # Convert HTML to high-resolution PNG
-      temp_png <- tempfile(fileext = ".png")
-      webshot(temp_html, file = temp_png, vwidth = 2400, vheight = 2400, zoom = 3)
+      # Define high-resolution settings
+      resolution <- 300  # DPI (dots per inch)
+      vwidth <- 2400     # Width in pixels
+      vheight <- 2400    # Height in pixels
+      zoom <- resolution / 96  # Standard DPI is 96; scale for high resolution
       
-      # If JPEG is requested, convert PNG to JPEG
-      if (input$downloadFormat == "JPEG") {
-        img <- readPNG(temp_png)
-        writeJPEG(img, target = file, quality = 1)  # Save as JPEG with high quality
-      } else {
-        # If PNG is requested, just copy the PNG file to the download file path
+      if (input$downloadFormat == "PNG") {
+        # Convert HTML to high-resolution PNG
+        temp_png <- tempfile(fileext = ".png")
+        webshot(temp_html, file = temp_png, vwidth = vwidth, vheight = vheight, zoom = zoom)
         file.copy(temp_png, file)
+      } else if (input$downloadFormat == "JPEG") {
+        # Convert HTML to high-resolution JPEG
+        temp_png <- tempfile(fileext = ".png")
+        webshot(temp_html, file = temp_png, vwidth = vwidth, vheight = vheight, zoom = zoom)
+        img <- readPNG(temp_png)
+        writeJPEG(img, target = file, quality = 1)  # Set quality to maximum
+      } else {
+        # Unsupported format
+        showNotification("Unsupported file format.", type = "error")
       }
     }
   )
+  
+  
   
   
   
