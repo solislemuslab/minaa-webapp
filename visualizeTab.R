@@ -49,7 +49,8 @@ VisualizeTab <- tabPanel(
                    "vis_size_aligned", 
                    label = HTML("Size Aligned <a id='info_size_aligned_' href='#' style='text-decoration:none;'><i class='fa fa-question-circle'></i></a>"), 
                    value = 1, 
-                   step = 1
+                   step = 1,
+                   min = 0,
                  ),
                  bsTooltip("info_size_aligned_", "Sizes of aligned nodes.", placement = "right")
           ),
@@ -59,7 +60,8 @@ VisualizeTab <- tabPanel(
                    "vis_zero_degree", 
                    label = HTML("Degree Align <a id='info_zero_degree_' href='#' style='text-decoration:none;'><i class='fa fa-question-circle'></i></a>"), 
                    value = 0, 
-                   step = 1
+                   step = 1,
+                   min = 0,
                  ),
                  bsTooltip("info_zero_degree_", "Minimum degree to show nodes in the graph.", placement = "right")
           ),
@@ -67,22 +69,24 @@ VisualizeTab <- tabPanel(
           column(6,
                  numericInput(
                    "vis_th_align", 
-                   label = HTML("Threshold Align <a id='info_th_align_' href='#' style='text-decoration:none;'><i class='fa fa-question-circle'></i></a>"), 
+                   label = HTML("Threshold Align (Range: (0, 1] <a id='info_th_align_' href='#' style='text-decoration:none;'><i class='fa fa-question-circle'></i></a>"), 
                    value = 0.5, 
-                   step = 0.01
+                   step = 0.01,
+                   min = .Machine$double.eps,
+                   max = 1,
                  ),
                  bsTooltip("info_th_align_", "Minimum threshold values required for alignment.", placement = "right")
           ),
           
-          column(6,
-                 numericInput(
-                   "vis_vertex_label_value", 
-                   label = HTML("Vertex Label Value <a id='info_vertex_label_value_' href='#' style='text-decoration:none;'><i class='fa fa-question-circle'></i></a>"), 
-                   value = 0.5, 
-                   step = 0.01
-                 ),
-                 bsTooltip("info_vertex_label_value_", "Size of the node label", placement = "right")
-          ),
+          #column(6,
+                 #numericInput(
+                   #"vis_vertex_label_value", 
+                  # label = HTML("Vertex Label Value <a id='info_vertex_label_value_' href='#' style='text-decoration:none;'><i class='fa fa-question-circle'></i></a>"), 
+                   #value = 0.5, 
+                   #step = 0.01
+                 #),
+                 #bsTooltip("info_vertex_label_value_", "Size of the node label", placement = "right")
+         # ),
           
           tags$hr()
         )

@@ -8,52 +8,46 @@ library(htmlwidgets)
 library(webshot)  # install.packages("webshot")
 webshot::install_phantomjs()  #
 
-plot_aligned_networks <- function(adj_G, adj_A, alignment_GA, th_align, zero_degree, vertex_label_value, size_aligned,
+plot_aligned_networks <- function(adj_G, adj_A, alignment_GA, th_align, zero_degree, size_aligned,
                                   node_G_color, node_H_color, edge_G_color, edge_H_color, line_GH_color, aligned_G_color, aligned_H_color) {
+  # Set name limit to 3
+  name_limit <- 9
   
-  # Set a character limit for truncation
-  name_limit <- 5
-  
-  # Function to truncate names if they exceed the limit and add a suffix for uniqueness
-  truncate_name <- function(name, suffix) {
-    if (nchar(name) > name_limit) {
-      paste0(substr(name, 1, name_limit), suffix)
-    } else {
-      name
-    }
-  }
-  
-  # Create graph objects from adjacency matrices for G and A
-  graph_G <- graph_from_adjacency_matrix(adj_G, mode="undirected")
-  original_names_G <- rownames(adj_G)
-  
-  graph_A <- graph_from_adjacency_matrix(adj_A, mode="undirected")
-  original_names_A <- rownames(adj_A)
-  
-  # Apply truncation to names in G and A with unique suffixes for each node
-  truncated_names_G <- mapply(truncate_name, original_names_G, seq_len(vcount(graph_G)))
-  truncated_names_A <- mapply(truncate_name, original_names_A, seq_len(vcount(graph_A)))
-  
-  # Update names in the graph objects
-  V(graph_G)$name <- truncated_names_G
-  V(graph_A)$name <- truncated_names_A
-  
-  # Check if any truncation occurred
-  truncated <- any(c(truncated_names_G != original_names_G, truncated_names_A != original_names_A))
-  
-  # Create name mapping table only if truncation occurred
-  name_mapping <- if (truncated) {
+  truncate_names <- function(names, prefix, name_limit) {
+    # Determine which names exceed the limit
+    is_truncated <- nchar(names) > name_limit
+    
+    # Only truncate names that exceed the limit, keep others as is
+    truncated <- ifelse(is_truncated, paste0(prefix, seq_along(names)), names)
+    
+    # Return a data frame with original and truncated names, along with truncation status
     data.frame(
-      Original_Name = c(original_names_G, original_names_A),
-      Truncated_Name = c(truncated_names_G, truncated_names_A)
+      Original_Name = names,
+      Truncated_Name = truncated,
+      Is_Truncated = is_truncated
     )
-  } else {
-    NULL  # No truncation, so no mapping table needed
   }
   
-  # Set truncated names in the graph objects
-  V(graph_G)$name <- truncated_names_G
-  V(graph_A)$name <- truncated_names_A
+  
+  # Create graph objects from adjacency matrices
+  graph_G <- graph_from_adjacency_matrix(adj_G, mode = "undirected")
+  graph_A <- graph_from_adjacency_matrix(adj_A, mode = "undirected")
+    
+    original_names_G <- rownames(adj_G)
+    original_names_A <- rownames(adj_A)
+    
+    # Apply truncation logic to G and A
+    name_mapping_G <- truncate_names(original_names_G, "g", name_limit)
+    name_mapping_A <- truncate_names(original_names_A, "h", name_limit)
+    
+    # Extract truncated names for graph objects
+    truncated_names_G <- name_mapping_G$Truncated_Name
+    truncated_names_A <- name_mapping_A$Truncated_Name
+    
+    # Set names in the graph objects
+    V(graph_G)$name <- truncated_names_G
+    V(graph_A)$name <- truncated_names_A
+    
   
   # Identify aligned nodes based on alignment threshold
   alignment_indices <- which(alignment_GA >= th_align, arr.ind=TRUE)
@@ -135,38 +129,48 @@ plot_aligned_networks <- function(adj_G, adj_A, alignment_GA, th_align, zero_deg
   # Add edges within G with edge_G_color
   p <- p %>%
     add_segments(data = edges_G, x = ~x, y = ~y, xend = ~xend, yend = ~yend,
-                 line = list(color = edge_G_color, width = 0.3), showlegend = FALSE)
+                 line = list(color = edge_G_color, width = 0.3), hoverinfo = 'none', showlegend = FALSE)
   
   # Add edges within A with edge_H_color
   p <- p %>%
     add_segments(data = edges_A, x = ~x, y = ~y, xend = ~xend, yend = ~yend,
-                 line = list(color = edge_H_color, width = 0.3), showlegend = FALSE)
+                 line = list(color = edge_H_color, width = 0.3), hoverinfo = 'none', showlegend = FALSE)
   
   # Add aligned edges between G and A with line_GH_color
   p <- p %>%
     add_segments(data = edges_aligned, x = ~x, y = ~y, xend = ~xend, yend = ~yend,
-                 line = list(color = line_GH_color, width = 1.5), showlegend = FALSE)
+                 line = list(color = line_GH_color, width = 1.5),hoverinfo = 'none',  showlegend = FALSE)
   
   # Add nodes from G with explicit colors
   p <- p %>%
     add_trace(data = nodes_G, x = ~x, y = ~y, type = 'scatter', mode = 'markers+text',
-              text = ~name, textposition = 'top center',
+              text = ~name, textposition = 'top center', hoverinfo = 'text', 
               marker = list(color = nodes_G$color, size = nodes_G$size),
+              hoverlabel = list(
+                bgcolor = "white",  # Background color of hover label
+                bordercolor = "black",  # Border color
+                font = list(size = 12, family = "Arial")  # Font settings
+              ),
               showlegend = FALSE)
   
   # Add nodes from A with explicit colors
   p <- p %>%
     add_trace(data = nodes_A, x = ~x, y = ~y, type = 'scatter', mode = 'markers+text',
-              text = ~name, textposition = 'top center',
+              text = ~name, textposition = 'top center',hoverinfo = 'text', 
               marker = list(color = nodes_A$color, size = nodes_A$size),
+              hoverlabel = list(
+                bgcolor = "white",
+                bordercolor = "black",
+                font = list(size = 12, family = "Arial")
+              ),
               showlegend = FALSE)
   
   # Add titles above networks G and H using annotations
   p <- p %>%
     layout(
       title = "Aligned Network Visualization",
-      xaxis = list(showgrid = FALSE, zeroline = FALSE),
-      yaxis = list(showgrid = FALSE, zeroline = FALSE),
+      xaxis = list(visible = FALSE),
+      yaxis = list(visible = FALSE),
       showlegend = FALSE,
       annotations = list(
         list(
@@ -180,7 +184,7 @@ plot_aligned_networks <- function(adj_G, adj_A, alignment_GA, th_align, zero_deg
       )
     )
   
-  return(list(plot = p, name_mapping = name_mapping))
+  return(list(plot = p, name_mapping_G = name_mapping_G, name_mapping_A = name_mapping_A))
 }
 
 
@@ -306,7 +310,7 @@ function(input, output, session) {
       # Get user-defined parameters for the plot
       th_align <- input$th_align
       zero_degree <- input$zero_degree
-      vertex_label_value <- input$vertex_label_value
+      #vertex_label_value <- input$vertex_label_value
       size_aligned <- input$size_aligned
       node_G_color <- input$node_G_color
       node_H_color <- input$node_H_color
@@ -329,7 +333,7 @@ function(input, output, session) {
             alignment_GA = reactiveData$alignment_GA,
             th_align = input$th_align,
             zero_degree = input$zero_degree,
-            vertex_label_value = input$vertex_label_value,
+            #vertex_label_value = input$vertex_label_value,
             size_aligned = input$size_aligned,
             node_G_color = input$node_G_color,
             node_H_color = input$node_H_color,
@@ -342,7 +346,8 @@ function(input, output, session) {
           
           # Store the plot and set the plot generation status to TRUE
           reactiveData$plot <- result$plot
-          reactiveData$name_mapping <- result$name_mapping
+          reactiveData$name_mapping_G <- result$name_mapping_G
+          reactiveData$name_mapping_A <- result$name_mapping_A
           plotGenerated(TRUE)  # Set plotGenerated to TRUE once the plot is generated
           
           # Show notification when the plot is generated
@@ -382,28 +387,58 @@ function(input, output, session) {
         }
       })
       
-      # Render the name mapping table only if truncation occurred
-      output$nameMappingTable <- renderTable({
-        if (!is.null(reactiveData$name_mapping)) {
-          reactiveData$name_mapping
+      
+      
+      # Render name mapping table for G
+      output$nameMappingTableG <- renderTable({
+        if (!is.null(reactiveData$name_mapping_G)) {
+          reactiveData$name_mapping_G
         } else {
-          NULL  # No table if no truncation occurred
+          NULL
         }
       })
       
-      # Conditional UI for displaying the table or a message
-      output$nameMappingUI <- renderUI({
-        if (!is.null(reactiveData$name_mapping)) {
-          # Display the table if truncation occurred
-          tagList(
-            h4("Name Mapping Table"),
-            tableOutput("nameMappingTable")
-          )
+      # Render name mapping table for A
+      output$nameMappingTableA <- renderTable({
+        if (!is.null(reactiveData$name_mapping_A)) {
+          reactiveData$name_mapping_A
         } else {
-          # Display message if no truncation occurred
-          p("No names were truncated.")
+          NULL
         }
       })
+      
+      output$nameMappingUI <- renderUI({
+        if ((!is.null(reactiveData$name_mapping_G) && any(reactiveData$name_mapping_G$Is_Truncated)) || 
+            (!is.null(reactiveData$name_mapping_A) && any(reactiveData$name_mapping_A$Is_Truncated))) {
+          fluidRow(
+            column(6,
+                   tagList(
+                     h4("Name Mapping Table for G"),
+                     if (!is.null(reactiveData$name_mapping_G) && any(reactiveData$name_mapping_G$Is_Truncated)) {
+                       tableOutput("nameMappingTableG")
+                     } else {
+                       p("No names were truncated in G.")
+                     }
+                   )
+            ),
+            column(6,
+                   tagList(
+                     h4("Name Mapping Table for A"),
+                     if (!is.null(reactiveData$name_mapping_A) && any(reactiveData$name_mapping_A$Is_Truncated)) {
+                       tableOutput("nameMappingTableA")
+                     } else {
+                       p("No names were truncated in A.")
+                     }
+                   )
+            )
+          )
+        } else {
+          p("No names were truncated in either G or A.")
+        }
+      })
+      
+      
+      
     }
   })
   
@@ -455,7 +490,7 @@ function(input, output, session) {
         alignment_GA = reactiveData$alignment_GA,
         th_align = input$th_align,
         zero_degree = input$zero_degree,
-        vertex_label_value = input$vertex_label_value,
+        #vertex_label_value = input$vertex_label_value,
         size_aligned = input$size_aligned,
         node_G_color = input$node_G_color,
         node_H_color = input$node_H_color,
@@ -688,7 +723,7 @@ function(input, output, session) {
           alignment_GA = reactiveData$alignment_GA,
           th_align = input$vis_th_align,
           zero_degree = input$vis_zero_degree,
-          vertex_label_value = input$vis_vertex_label_value,
+          #vertex_label_value = input$vis_vertex_label_value,
           size_aligned = input$vis_size_aligned,
           node_G_color = input$vis_node_G_color,
           node_H_color = input$vis_node_H_color,
@@ -701,7 +736,8 @@ function(input, output, session) {
         
         # Store the plot and name mapping
         reactiveData$plot <- result$plot
-        reactiveData$name_mapping <- result$name_mapping
+        reactiveData$name_mapping_G <- result$name_mapping_G
+        reactiveData$name_mapping_A <- result$name_mapping_A        
         plotGenerated(TRUE)  # Indicate plot is generated
         
         # Show notification
@@ -723,25 +759,49 @@ function(input, output, session) {
   output$vis_plotGenerated <- reactive({ plotGenerated() })
   outputOptions(output, "vis_plotGenerated", suspendWhenHidden = FALSE)
   
-  # Render the name mapping table or message only after "Run" is clicked
+  # Render the name mapping tables or messages only after "Run" is clicked
   output$nameMappingUI_ <- renderUI({
     if (plotGenerated()) {
-      if (!is.null(reactiveData$name_mapping)) {
-        tagList(
-          h4("Name Mapping Table"),
-          tableOutput("nameMappingTable")
+      if ((!is.null(reactiveData$name_mapping_G) && any(reactiveData$name_mapping_G$Is_Truncated)) ||
+          (!is.null(reactiveData$name_mapping_A) && any(reactiveData$name_mapping_A$Is_Truncated))) {
+        fluidRow(
+          column(6,
+                 tagList(
+                   h4("Name Mapping Table for G"),
+                   if (!is.null(reactiveData$name_mapping_G) && any(reactiveData$name_mapping_G$Is_Truncated)) {
+                     tableOutput("nameMappingTableG")
+                   } else {
+                     p("No names were truncated in G.")
+                   }
+                 )
+          ),
+          column(6,
+                 tagList(
+                   h4("Name Mapping Table for A"),
+                   if (!is.null(reactiveData$name_mapping_A) && any(reactiveData$name_mapping_A$Is_Truncated)) {
+                     tableOutput("nameMappingTableA")
+                   } else {
+                     p("No names were truncated in A.")
+                   }
+                 )
+          )
         )
       } else {
-        p("No names were truncated.")
+        p("No names were truncated in either G or A.")
       }
     } else {
       NULL  # Hide initially until "Run" is clicked
     }
   })
   
-  # Render the name mapping table only if truncation occurred
-  output$nameMappingTable <- renderTable({
-    reactiveData$name_mapping
+  # Render the name mapping table for G
+  output$nameMappingTableG <- renderTable({
+    reactiveData$name_mapping_G
+  })
+  
+  # Render the name mapping table for A
+  output$nameMappingTableA <- renderTable({
+    reactiveData$name_mapping_A
   })
   
   # Download plot as PNG or JPEG
@@ -758,7 +818,7 @@ function(input, output, session) {
         alignment_GA = reactiveData$alignment_GA,
         th_align = input$vis_th_align,
         zero_degree = input$vis_zero_degree,
-        vertex_label_value = input$vis_vertex_label_value,
+        #vertex_label_value = input$vis_vertex_label_value,
         size_aligned = input$vis_size_aligned,
         node_G_color = input$vis_node_G_color,
         node_H_color = input$vis_node_H_color,
@@ -785,5 +845,6 @@ function(input, output, session) {
       }
     }
   )
+
 
 }
