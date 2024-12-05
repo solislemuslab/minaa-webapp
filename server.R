@@ -702,7 +702,7 @@ function(input, output, session) {
       # Display the metrics and plot the network (assuming the rest of the code for visualization exists)
       output$alignmentSummaryUI_ <- renderUI({
         tagList(
-          h5("Alignment Metrics"),
+          h4("Metrics Summary"),
           p(paste("Percentage of Aligned Edge Pairs:", round(percentage_aligned, 2), "%")),
           p(paste("Adjusted Number of Aligned Edge Pairs:", round(adjusted_aligned, 2)))
         )
