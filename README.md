@@ -16,7 +16,7 @@ Users interested in expanding functionalities in the MiNAA Web App are welcome t
 
 ## License
 
-The MiNAA Web App is licensed under the [MIT](https://opensource.org/licenses/MIT) licence. &copy; SolisLemus lab projects (2023)
+The MiNAA Web App is licensed under the [MIT](https://opensource.org/licenses/MIT) licence. &copy; SolisLemus lab projects (2025)
 
 ## Citation
 
