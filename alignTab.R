@@ -5,6 +5,8 @@ library(colourpicker)
 library(shinyBS)  # For popovers
 library(plotly)
 library(shinythemes)
+library(shinycssloaders)
+
 
 AlignTab <- tabPanel(
   "Run",

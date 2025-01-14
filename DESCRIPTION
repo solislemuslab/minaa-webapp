@@ -1,7 +1,7 @@
-Version: 0.0.0
+Version: 1.0.0
 Type: Shiny
 Title: MiNAA Web App
-Author: Reed Nelson
+Author: Qiyao Yang
 AuthorUrl: https://solislemuslab.github.io/
 License: MIT
 Tags: microbiome network alignment
