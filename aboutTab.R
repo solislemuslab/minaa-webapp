@@ -119,7 +119,7 @@ AboutTab <- tabPanel(
         p(
           "MiNAA is licensed under the",
           a(href = "https://opensource.org/licenses/MIT", "MIT License"),
-          "\U00A9 Sol\U00EDs-Lemus Lab (2023)."
+          "\U00A9 Sol\U00EDs-Lemus Lab (2025)."
         )
     )
   )
