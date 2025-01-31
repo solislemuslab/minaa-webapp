@@ -491,7 +491,7 @@ function(input, output, session) {
       
       # Save the Plotly plot as an HTML file
       temp_html <- tempfile(fileext = ".html")
-      saveWidget(as_widget(reactiveData$plot), temp_html, selfcontained = TRUE)
+      saveWidget(as_widget(reactiveData$plot), temp_html, selfcontained = FALSE)
       
       # Define high-resolution settings
       resolution <- 300  # DPI (dots per inch)
@@ -830,7 +830,7 @@ function(input, output, session) {
       
       # Save as HTML temporarily
       temp_html <- tempfile(fileext = ".html")
-      saveWidget(as_widget(p), temp_html, selfcontained = TRUE)
+      saveWidget(as_widget(p), temp_html, selfcontained = FALSE)
       
       # Convert HTML to high-resolution PNG or JPEG
       temp_png <- tempfile(fileext = ".png")
