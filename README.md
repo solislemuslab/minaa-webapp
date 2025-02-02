@@ -45,7 +45,7 @@ shiny::runApp()
 
 ### 4. Access the Web App
 Once the app starts, it will automatically open in your default web browser at:
-http://127.0.0.1:3838/
+`http://127.0.0.1:3838/`
 
 If the app does not open automatically, copy and paste the address into your browser.
 
