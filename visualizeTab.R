@@ -83,7 +83,7 @@ VisualizeTab <- tabPanel(
               6,
               numericInput(
                 "vis_th_align",
-                label = HTML("Threshold Align (Range: (0, 1] <a id='info_th_align_' href='#' style='text-decoration:none;'><i class='fa fa-question-circle'></i></a>"),
+                label = HTML("Threshold Align (Range: (0, 1]) <a id='info_th_align_' href='#' style='text-decoration:none;'><i class='fa fa-question-circle'></i></a>"),
                 value = 0.5,
                 step = 0.01,
                 min = .Machine$double.eps,

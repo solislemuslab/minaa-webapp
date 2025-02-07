@@ -77,29 +77,32 @@ AboutTab <- tabPanel(
       ),
       h3("Outputs"),
       tags$ul(
-        tags$li("X-Y-T/: (where \"X\", \"Y\" are the input networks, \"T\" is the date and time of execution) The folder containing the output files specified below."),
+        tags$li("G-H/: (where G, H are the input networks) The folder containing the output files specified below."),
         tags$li("log.txt: Record of the important details from the alignment."),
-        tags$li("X_gdvs.csv: (where \"X\" is the input network) The Graphlet Degree Vectors for network \"X\"."),
+        tags$li("G_gdvs.csv: (where G is the input network) The Graphlet Degree Vectors for network G."),
+        tags$li("H_gdvs.csv: (where H is the input network) The Graphlet Degree Vectors for network H."),
         tags$li("top_costs.csv: The topological cost matrix."),
         tags$li("bio_costs.csv: The biological cost matrix (as inputed). Not created unless biological input is given."),
         tags$li("overall_costs.csv: The combination of the topological and biological cost matrix. Not created unless biological input is given."),
         tags$li("alignment_list.csv: A complete list of all aligned nodes, with rows in the format `g_node,h_node,similarity`, descending according to similarity. The first row in this list is the total cost of the alignment, or the sum of (1 - similarity) for all aligned pairs."),
         tags$li("alignment_matrix.csv: A matrix form of the same alignment, where the first column and row are the labels from the two input networks, respectively.")
       ),
+      h2("Resources"),
       h3("Examples"),
-      p("`./minaa.exe network0.csv network1.csv -a=0.6`"),
-      p("Here we align network0 with network1 using no biological data. `-a=0.6` sets alpha equal to 0.6, meaning 60% of the topological cost function comes from similarity calculated by GDVs, and 40% from simpler node degree data."),
-      p("`./minaa.exe network0.csv network1.csv bio_costs.csv -b=0.85`"),
-      p("Here we align network0 with network1 using topological information and the given biological cost matrix, bio_costs. Since alpha and gamma were unspecified, they default to 0.5 and 1 respectively. Since beta was set to 0.85, 85% of the cost weight is from the topological cost matrix, and 15% is from the given biological cost matrix."),
-      h2("The Manuscript"),
+      p(
+        "For examples of file input format, parameter usage, and expected outputs, see the",
+        a(href = "https://github.com/solislemuslab/minaa/tree/main/examples", "examples folder"),
+        "on Github."
+      ),
+      h3("Software Note"),
       p(
         "For a more detailed description of the MiNAA algorithm, a",
-        a(href = "https://arxiv.org/abs/2212.05880", "manuscript"),
-        "is currently available on arXiv."
+        a(href = "https://joss.theoj.org/papers/10.21105/joss.05448", "Software Note"),
+        "is published in the Journal of Open Source Software."
       ),
-      h3("Simulations in the Manuscript"),
+      h3("Simulations"),
       p(
-        "All scripts and instructions to reproduce the analyses in the manuscript can be found in the",
+        "All scripts and instructions to reproduce the analyses in the Software Note can be found in the",
         a(href = "https://github.com/solislemuslab/minaa/tree/main/simulations", "simulations folder"),
         "on Github."
       ),
@@ -109,7 +112,9 @@ AboutTab <- tabPanel(
         a(href = "https://github.com/solislemuslab/minaa/issues", "issue tracker"),
         "on Github. See details on how to contribute and report issues in",
         a(href = "https://github.com/solislemuslab/minaa/blob/master/CONTRIBUTING.md", "CONTRIBUTING.md"),
-        "on Github."
+        "on Github. Contributions to",
+        a(href = "https://github.com/reednel/minaa-webapp", "this webapp"),
+        "are also welcome."
       ),
       h2("License"),
       p(
