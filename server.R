@@ -463,7 +463,6 @@ function(input, output, session) {
     #print(total_cost)
     adjusted_aligned <- (aligned_edges - (total_cost / aligned_edges))
     print(total_cost)
-    adjusted_aligned <- ((aligned_edges - total_cost) / aligned_edges) * 100
     list(
       percentage_aligned = percentage_aligned,
       adjusted_aligned = adjusted_aligned
@@ -678,6 +677,7 @@ function(input, output, session) {
       #print(aligned_edges)
       min_nodes <- min(nrow(reactiveData$adj_G), nrow(reactiveData$adj_A))
       percentage_aligned <- (aligned_edges / min_nodes) * 100
+
       
       #alignment_dir <- sprintf("%s-%s", tools::file_path_sans_ext(basename(G)), tools::file_path_sans_ext(basename(H)))
       
@@ -691,26 +691,7 @@ function(input, output, session) {
       print(total_cost)
       percentage_aligned = percentage_aligned
       adjusted_aligned = adjusted_aligned
-      
-      
-      
-      
-      
 
-      # alignment_dir <- sprintf("%s-%s", tools::file_path_sans_ext(basename(G)), tools::file_path_sans_ext(basename(H)))
-
-      # alignment_list_filepath <- file.path(output_dir, alignment_dir, "alignment_list.csv")
-
-      # header_line <- readLines(alignment_list_filepath, n = 1)
-      # total_cost <- as.numeric(sub("X", "", strsplit(header_line, ",")[[1]][1]))
-      # print(total_cost)
-      adjusted_aligned <- ((aligned_edges - total_cost) / aligned_edges) * 100
-      percentage_aligned <- percentage_aligned
-      adjusted_aligned <- adjusted_aligned
-
-      # Calculate metrics
-      # metrics <- calculateAlignmentMetrics(data=reactiveData, alignment_list_filepath = alignment_list_filepath)
-      # reactiveData$alignment_summary <- metrics
 
       # Display the metrics and plot the network (assuming the rest of the code for visualization exists)
       output$alignmentSummaryUI_ <- renderUI({
