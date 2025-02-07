@@ -458,8 +458,8 @@ function(input, output, session) {
     
     header_line <- readLines(alignment_list_filepath, n = 1)
     total_cost <- as.numeric(sub("X", "", strsplit(header_line, ",")[[1]][1]))
-    print(total_cost)
-    adjusted_aligned <- ((aligned_edges - total_cost )/ aligned_edges) * 100
+    #print(total_cost)
+    adjusted_aligned <- (aligned_edges - (total_cost / aligned_edges))
     list(
       percentage_aligned = percentage_aligned,
       adjusted_aligned = adjusted_aligned
@@ -675,7 +675,7 @@ function(input, output, session) {
         return(NULL)
       }
       aligned_edges <- sum(reactiveData$alignment_GA > 0)
-      print(aligned_edges)
+      #print(aligned_edges)
       min_nodes <- min(nrow(reactiveData$adj_G), nrow(reactiveData$adj_A))
       percentage_aligned <- (aligned_edges / min_nodes) * 100
       
@@ -686,7 +686,9 @@ function(input, output, session) {
       #header_line <- readLines(alignment_list_filepath, n = 1)
       #total_cost <- as.numeric(sub("X", "", strsplit(header_line, ",")[[1]][1]))
      # print(total_cost)
-      adjusted_aligned <- ((aligned_edges - total_cost )/ aligned_edges) * 100
+      adjusted_aligned <- (aligned_edges - (total_cost / aligned_edges))
+      print(aligned_edges)
+      print(total_cost)
       percentage_aligned = percentage_aligned
       adjusted_aligned = adjusted_aligned
       
