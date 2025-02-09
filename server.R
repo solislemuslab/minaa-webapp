@@ -6,7 +6,7 @@ library(igraph)
 library(plotly)
 library(htmlwidgets)
 library(webshot) # install.packages("webshot")
-webshot::install_phantomjs() #
+webshot::install_phantomjs(force = TRUE)
 
 plot_aligned_networks <- function(adj_G, adj_A, alignment_GA, th_align, zero_degree, size_aligned,
                                   node_G_color, node_H_color, edge_G_color, edge_H_color, line_GH_color, aligned_G_color, aligned_H_color) {
