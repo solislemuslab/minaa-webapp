@@ -52,6 +52,7 @@ This indicates that 40% of the edges in the smaller network are successfully ali
 $$
 \text{Adjusted Number of Aligned Edge Pairs} = \text{number of aligned edge pairs} - \frac{\text{total cost}}{\text{number of aligned edge pairs}}
 $$
+
 Here, the *total cost* represents the cumulative alignment cost derived from the first row of the alignment list. For example, if there are 20 aligned edge pairs and the total alignment cost is 5, the adjusted number is calculated as:
 
 $$
