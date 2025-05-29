@@ -61,3 +61,6 @@ $$
 
 Together, these two measures provide a comprehensive evaluation of network alignment, balancing both quantity and quality to assess structural similarity effectively.
 
+![Visualization of the `MiNAA-WebApp` interface, highlighting network alignment features and customizable parameter settings](graphics/graph.pdf)
+
+
