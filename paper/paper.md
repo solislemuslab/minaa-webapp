@@ -70,13 +70,13 @@ Together, these two measures provide a comprehensive evaluation of network align
 **The About Tab** provides an overview of the `MiNAA-WebApp`, including its purpose and functionality. The web page and accompanying web app are open-source, with the code available in the GitHub repository: [https://github.com/solislemuslab/minaa-webapp.git](https://github.com/solislemuslab/minaa-webapp.git), where users can access the source code and detailed documentation. An embedded tutorial video demonstrates how to navigate the interface, configure parameters, and interpret results, making the app accessible to users with varying technical expertise.
 
 # Future work
-The `MiNAA-WebApp` will evolve to meet the needs of researchers in biological network analysis. Future updates will enhance scalability, introduce multi-network alignment, expand biological similarity metrics, improve visualization, and increase interoperability with bioinformatics tools. We plan to optimize computational performance for handling larger networks, using memory-efficient algorithms and parallel computations. Multi-network alignment will enable simultaneous comparisons of multiple microbial communities. We will also broaden biological similarity metrics to include functional, phylogenetic, and metabolic correlations, and add topological features like centrality measures, clustering coefficients, and modular structures to refine network characterization and alignment accuracy.
-
-These updates will maintain the `MiNAA-WebApp` as a versatile tool for a wide range of research applications.
+The `MiNAA-WebApp` will evolve to meet the needs of researchers in biological network analysis. Future updates will enhance scalability, introduce multi-network alignment, expand biological similarity metrics, improve visualization, and increase interoperability with bioinformatics tools. We plan to optimize computational performance for handling larger networks, using memory-efficient algorithms and parallel computations. Multi-network alignment will enable simultaneous comparisons of multiple microbial communities. We will also broaden biological similarity metrics to include functional, phylogenetic, and metabolic correlations, and add topological features like centrality measures, clustering coefficients, and modular structures to refine network characterization and alignment accuracy. These updates will maintain the `MiNAA-WebApp` as a versatile tool for a wide range of research applications.
 
 
 # Acknowledgements
 This work was supported by the National Science Foundation [DEB-2144367 to CSL].
+
+# References
 
 
 
