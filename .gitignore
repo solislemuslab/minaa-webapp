@@ -6,7 +6,6 @@ alignments/.
 *.exe
 *.txt
 *.csv
-*.png
 *.pdf
 !www/logo.png
 
