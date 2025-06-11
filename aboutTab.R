@@ -105,6 +105,12 @@ AboutTab <- tabPanel(
         a(href = "#", "Software Note"),
         "is published in the Journal of Open Source Software."
       ),
+      h3("Citation"),
+      p(
+        "For citation information for both the MiNAA algorithm and MiNAA web app, please refer to the ",
+        a(href = "https://github.com/solislemuslab/minaa-webapp#citation", "Citation section on GitHub"),
+        "."
+      ),
       h2("Contributions, Questions, Issues, and Feedback"),
       p(
         "Users interested in expanding functionalities in MiNAA are welcome to do so. Issues reports are encouraged through the",
