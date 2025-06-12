@@ -87,7 +87,7 @@ If you use MiNAA or this web app in your work, we kindly ask that you cite the f
 
 @ARTICLE{Yang2025,
   title         = "MiNAA-WebApp: A Web-Based Tool for the Visualization and Analysis of Microbiome Networks",
-  author        = "Yang Qiyao, Nelson, Reed and Aghdam, Rosa and Solis-Lemus, Claudia",
+  author        = "Yang, Qiyao and Aghdam, Rosa and Nelson, Reed and Solis-Lemus, Claudia"
   year          = 2025,
   archivePrefix = "arXiv",
   primaryClass  = "q-bio.PE",
