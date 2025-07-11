@@ -43,6 +43,11 @@ AboutTab <- tabPanel(
       ",
       h2("About MiNAA"),
       p("MiNAA aligns two networks based on their topologies and biologies."),
+      p(
+        "The source code for this web app is available on ",
+        a(href = "https://github.com/solislemuslab/minaa-webapp", "GitHub"),
+        "."
+      ),
       h3("Introduction Video"),
       tags$iframe(
         src = "https://www.youtube-nocookie.com/embed/S9PaA49xyBU", # No-cookie embed link
@@ -90,30 +95,30 @@ AboutTab <- tabPanel(
       h2("Resources"),
       h3("Examples"),
       p(
-        "For examples of file input format, parameter usage, and expected outputs, see the",
+        "For examples of file input format, parameter usage, and expected outputs for MiNAA, see the",
         a(href = "https://github.com/solislemuslab/minaa/tree/main/examples", "examples folder"),
         "on Github."
       ),
       h3("Software Note"),
       p(
-        "For a more detailed description of the MiNAA algorithm, a",
-        a(href = "https://joss.theoj.org/papers/10.21105/joss.05448", "Software Note"),
+        "For a more detailed description of the MiNAA Web App, a",
+        a(href = "#", "Software Note"),
         "is published in the Journal of Open Source Software."
       ),
-      h3("Simulations"),
+      h3("Citation"),
       p(
-        "All scripts and instructions to reproduce the analyses in the Software Note can be found in the",
-        a(href = "https://github.com/solislemuslab/minaa/tree/main/simulations", "simulations folder"),
-        "on Github."
+        "For citation information for both the MiNAA algorithm and MiNAA web app, please refer to the ",
+        a(href = "https://github.com/solislemuslab/minaa-webapp#citation", "Citation section on GitHub"),
+        "."
       ),
       h2("Contributions, Questions, Issues, and Feedback"),
       p(
         "Users interested in expanding functionalities in MiNAA are welcome to do so. Issues reports are encouraged through the",
-        a(href = "https://github.com/solislemuslab/minaa/issues", "issue tracker"),
+        a(href = "https://github.com/solislemuslab/minaa-webapp/issues", "issue tracker"),
         "on Github. See details on how to contribute and report issues in",
-        a(href = "https://github.com/solislemuslab/minaa/blob/master/CONTRIBUTING.md", "CONTRIBUTING.md"),
+        a(href = "https://github.com/solislemuslab/minaa-webapp/blob/main/CONTRIBUTING.md", "CONTRIBUTING.md"),
         "on Github. Contributions to",
-        a(href = "https://github.com/reednel/minaa-webapp", "this webapp"),
+        a(href = "https://github.com/solislemuslab/minaa-webapp", "this webapp"),
         "are also welcome."
       ),
       h2("License"),

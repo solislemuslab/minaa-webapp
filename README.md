@@ -69,18 +69,31 @@ The MiNAA Web App is licensed under the [MIT](https://opensource.org/licenses/MI
 
 ## Citation
 
-If you use MiNAA in your work, we kindly ask that you cite the following paper:
+If you use MiNAA or this web app in your work, we kindly ask that you cite the following papers:
 
 ```bibtex
-@ARTICLE{Nelson2022,
-  title         = "MiNAA: Microbiome Network Alignment Algorithm",
-  author        = "Nelson, Reed and Aghdam, Rosa and
-                   Solis-Lemus, Claudia",
-  year          =  2022,
+@article{Nelson2024,
+  doi = {10.21105/joss.05448}, 
+  url = {https://doi.org/10.21105/joss.05448},
+  year = {2024},
+  publisher = {The Open Journal},
+  volume = {9},
+  number = {96}, 
+  pages = {5448}, 
+  author = {Reed Nelson and Rosa Aghdam and Claudia Solis-Lemus},
+  title = {MiNAA: Microbiome Network Alignment Algorithm},
+  journal = {Journal of Open Source Software} 
+} 
+
+@ARTICLE{Yang2025,
+  title         = "MiNAA-WebApp: A Web-Based Tool for the Visualization and Analysis of Microbiome Networks",
+  author        = "Yang, Qiyao and Aghdam, Rosa and Nelson, Reed and Solis-Lemus, Claudia"
+  year          = 2025,
   archivePrefix = "arXiv",
   primaryClass  = "q-bio.PE",
-  eprint        = "xxx"
+  eprint        = "xxx"              
 }
+
 ```
 
 ## Acknowledgments
