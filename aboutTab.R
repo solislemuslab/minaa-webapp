@@ -116,7 +116,7 @@ AboutTab <- tabPanel(
         "Users interested in expanding functionalities in MiNAA are welcome to do so. Issues reports are encouraged through the",
         a(href = "https://github.com/solislemuslab/minaa-webapp/issues", "issue tracker"),
         "on Github. See details on how to contribute and report issues in",
-        a(href = "https://github.com/Sophiayangg/minaa-webapp/blob/main/CONTRIBUTING.md", "CONTRIBUTING.md"),
+        a(href = "https://github.com/solislemuslab/minaa-webapp/blob/main/CONTRIBUTING.md", "CONTRIBUTING.md"),
         "on Github. Contributions to",
         a(href = "https://github.com/solislemuslab/minaa-webapp", "this webapp"),
         "are also welcome."
