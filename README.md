@@ -86,13 +86,13 @@ If you use MiNAA or this web app in your work, we kindly ask that you cite the f
 } 
 
 @ARTICLE{Yang2025,
-  title={MiNAA-WebApp: A Web-Based Tool for the Visualization and Analysis of Microbiome Networks}, 
-  author={Qiyao Yang and Rosa Aghdam and Reed Nelson and Claudia Solís-Lemus},
-  year={2025},
-  eprint={2507.08822},
-  archivePrefix={arXiv},
-  primaryClass={q-bio.MN},
-  url={https://arxiv.org/abs/2507.08822},          
+  title = {MiNAA-WebApp: A Web-Based Tool for the Visualization and Analysis of Microbiome Networks}, 
+  author = {Qiyao Yang and Rosa Aghdam and Reed Nelson and Claudia Solís-Lemus},
+  year = {2025},
+  eprint = {2507.08822},
+  archivePrefix = {arXiv},
+  primaryClass = {q-bio.MN},
+  url = {https://arxiv.org/abs/2507.08822},          
 }
 
 ```
